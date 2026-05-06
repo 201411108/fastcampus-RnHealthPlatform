@@ -1,0 +1,61 @@
+---
+description:
+globs:
+  - 'apps/mobile/**/*.tsx'
+  - 'packages/**/src/**/*.tsx'
+alwaysApply: false
+---
+
+# Cursor Design Rules
+
+이 문서는 디자인 작업이 실제로 필요한 화면, 카드, 상태 UI, 인터랙션 화면에서 선택적으로 적용하는 규칙입니다. Cursor 프로젝트 설정에서는 `Agent Requested` 또는 유사한 선택적 rule로 두는 것을 전제로 합니다. 모든 강의에 강제로 적용하지 않고, UI 품질과 시각 일관성이 중요한 작업에서만 사용합니다.
+
+## 시각 언어 규칙
+
+- 새 화면을 만들 때 먼저 공통 UI 토큰을 제안하고 그 다음 화면을 구현할 것.
+- 색상은 건강/웰니스 톤의 제한된 팔레트를 사용하고, 강한 포인트 컬러는 1개만 사용할 것.
+- typography는 `대제목 / 섹션 제목 / 본문 / 보조 텍스트` 4단계만 사용하고 임의의 크기 남발을 피할 것.
+- spacing은 일정한 scale을 두고 반복적으로 사용하며, 화면마다 제각각 숫자를 만들지 말 것.
+- 카드, 버튼, 칩, 상태 배지, 모달은 radius, padding, 그림자, border 문법을 통일할 것.
+- loading, empty, error, permission-denied 상태도 같은 정보 계층과 같은 레이아웃 문법으로 처리할 것.
+- placeholder 단계라도 너무 밋밋하거나 임시 화면처럼 보이지 않게 만들되, 화면마다 다른 테마를 만들지는 말 것.
+- 카메라 화면, 기록 목록, pedometer 화면, 리포트 화면, paywall 관련 화면이 기능은 달라도 같은 앱 안의 화면처럼 보이게 할 것.
+- 기존 앱 셸과 충돌하지 않도록 홈 카드와 자연스럽게 이어지는 visual language를 유지할 것.
+
+## 구현 전에 먼저 정할 것
+
+- 공통 색상 토큰
+- 공통 spacing scale
+- 공통 card pattern
+- 공통 primary / secondary button pattern
+- 공통 section header pattern
+- 공통 empty / loading / error / permission 상태 패턴
+
+## 접근성 규칙
+
+- 텍스트 대비를 충분히 확보할 것.
+- 버튼과 탭 영역은 충분한 터치 영역을 갖게 할 것.
+- 텍스트 길이가 늘어나도 카드와 버튼이 깨지지 않게 할 것.
+- 세로 스크롤이 필요한 화면은 안전하게 스크롤되도록 만들 것.
+
+## 언제 적용할지
+
+- 홈 화면, 카드 목록, placeholder 화면처럼 앱 인상이 만들어지는 UI
+- empty / loading / error / permission 상태가 여러 번 반복되는 기능
+- 기록 리스트, 리포트 카드, 센서 대시보드처럼 정보 밀도가 있는 화면
+- swipe, bottom sheet, paywall처럼 시각적 완성도가 중요한 인터랙션 화면
+
+## 디자인 작업 시작 문구 예시
+
+```text
+이번 작업은 화면과 상태 UI의 완성도가 중요하니 docs/prompts/rules/cursor-design-rules.md의 시각 규칙을 적용해줘.
+
+먼저 정리할 것:
+1) 색상 토큰
+2) typography 단계
+3) spacing scale
+4) card / button / section header 패턴
+5) loading / empty / error / permission 상태 패턴
+
+그 다음 실제 화면 구현에 들어가고, 새 UI는 모두 이 규칙 안에서 정리해줘.
+```

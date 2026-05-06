@@ -1,0 +1,27 @@
+{
+  "name": "rn-health-platform",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile:start": "yarn workspace mobile start",
+    "mobile:adb-reverse": "adb reverse tcp:8081 tcp:8081",
+    "mobile:android": "yarn mobile:adb-reverse && yarn workspace mobile android",
+    "mobile:ios": "yarn workspace mobile ios",
+    "mobile:lint": "yarn workspace mobile lint",
+    "mobile:typecheck": "yarn workspace mobile typecheck",
+    "lint": "eslint apps/mobile"
+  },
+  "devDependencies": {
+    "@react-native/eslint-config": "0.81.5",
+    "eslint": "^8.19.0",
+    "prettier": "2.8.8"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "yarn@4.9.1"
+}

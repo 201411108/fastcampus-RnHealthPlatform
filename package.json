@@ -13,7 +13,7 @@
     "mobile:ios": "yarn workspace mobile ios",
     "mobile:lint": "yarn workspace mobile lint",
     "mobile:typecheck": "yarn workspace mobile typecheck",
-    "lint": "eslint apps/mobile"
+    "lint": "eslint apps/mobile packages/feature-ai-camera"
   },
   "devDependencies": {
     "@react-native/eslint-config": "0.81.5",

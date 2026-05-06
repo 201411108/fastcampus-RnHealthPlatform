@@ -15,7 +15,19 @@ buildscript {
         classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        classpath("com.google.gms:google-services:4.4.4")
     }
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// @react-native-async-storage/async-storage v3 ships shared_storage AAR only in package local_repo (not Maven Central).
+def asyncStorageLocalMaven = "$rootDir/../../../node_modules/@react-native-async-storage/async-storage/android/local_repo"
+
+subprojects { sub ->
+    sub.repositories {
+        maven {
+            url(uri(asyncStorageLocalMaven))
+        }
+    }
+}

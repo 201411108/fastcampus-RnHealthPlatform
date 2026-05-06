@@ -11,5 +11,13 @@ module.exports = {
         },
       },
     },
+    {
+      files: ['packages/feature-ai-camera/**/*.{ts,tsx}'],
+      parserOptions: {
+        babelOptions: {
+          cwd: __dirname + '/apps/mobile',
+        },
+      },
+    },
   ],
 };

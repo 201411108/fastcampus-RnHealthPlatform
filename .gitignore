@@ -55,3 +55,7 @@ coverage/
 
 # Bundle
 *.jsbundle
+
+# Firebase / Google (로컬 전용 — 저장소에 커밋하지 않음)
+apps/mobile/android/app/google-services.json
+apps/mobile/ios/GoogleService-Info.plist

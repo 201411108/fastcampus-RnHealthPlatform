@@ -1,4 +1,4 @@
-package com.template
+package com.hankim.healthai
 
 import android.app.Application
 import com.facebook.react.PackageList

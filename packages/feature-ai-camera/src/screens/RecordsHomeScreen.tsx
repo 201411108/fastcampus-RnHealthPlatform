@@ -15,10 +15,10 @@ import RecordItem from '../components/RecordItem';
 import type { FoodRecord } from '../types/record';
 import { useCallback, useRef, useState } from 'react';
 import RecordDetailModal from '../components/RecordDetailModal';
+import { getAdUnitId } from '@rn-health/core';
 import {
   BannerAd,
   BannerAdSize,
-  TestIds,
   useForeground,
 } from 'react-native-google-mobile-ads';
 import {
@@ -29,13 +29,6 @@ import {
 import { colors, radius, spacing } from '../theme/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-
-const BANNER_FALLBACK_UNIT_ID =
-  Platform.OS === 'ios'
-    ? 'ca-app-pub-3940256099942544/2934735716'
-    : 'ca-app-pub-3940256099942544/6300978111';
-
-const bannerAdUnitId = __DEV__ ? TestIds.ADAPTIVE_BANNER : BANNER_FALLBACK_UNIT_ID;
 
 function RecordsHomeScreen({ navigation }: RecordsHomeScreenProps) {
   const { width: windowWidth } = useWindowDimensions();
@@ -139,9 +132,12 @@ function RecordsHomeScreen({ navigation }: RecordsHomeScreenProps) {
       >
         <BannerAd
           ref={bannerRef}
-          unitId={bannerAdUnitId}
+          unitId={getAdUnitId('aiCamera.adaptiveBanner')}
           size={BannerAdSize.LARGE_ANCHORED_ADAPTIVE_BANNER}
           width={bannerWidth}
+          onAdFailedToLoad={(loadError) => {
+            console.warn('배너 광고를 불러오지 못했습니다.', loadError);
+          }}
         />
       </View>
 

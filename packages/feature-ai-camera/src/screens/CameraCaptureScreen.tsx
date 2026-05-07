@@ -18,7 +18,7 @@ import {
 import useAIAnalysis from '../hooks/useAIAnalysis';
 import useRecords from '../hooks/useRecords';
 import type { CameraCaptureScreenProps } from '../navigation/types';
-import useInterstitial from '../hooks/useInterstitial';
+import { useInterstitialAd } from '@rn-health/core';
 import {
   AnalyzingOverlay,
   PermissionDeniedState,
@@ -51,7 +51,8 @@ function CameraCaptureScreen({ navigation }: CameraCaptureScreenProps) {
   const { analyzeFoodImage, isAnalyzing } = useAIAnalysis();
   const { addRecord } = useRecords();
 
-  const { loaded: interstitialLoaded, interstitial } = useInterstitial();
+  const { loaded: interstitialLoaded, interstitial } =
+    useInterstitialAd('aiCamera.interstitial');
 
   const handlePressAnalysis = async () => {
     if (!photo) {

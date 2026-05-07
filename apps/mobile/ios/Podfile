@@ -13,6 +13,7 @@ node_require('react-native-permissions/scripts/setup.rb')
 setup_permissions([
   'AppTrackingTransparency',
   'Camera',
+  'Motion',
 ])
 
 platform :ios, min_ios_version_supported

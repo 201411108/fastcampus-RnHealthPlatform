@@ -1,4 +1,4 @@
-import { getAI, getGenerativeModel } from '@react-native-firebase/ai';
+import { generateContentWithImageAndText } from '@rn-health/core';
 import {
   FOOD_ANALYSIS_PROMPT,
   FOOD_ANALYSIS_SYSTEM_PROMPT,
@@ -16,14 +16,16 @@ interface AnalysisError {
 }
 
 class AIAnalysisService {
-  private model: ReturnType<typeof getGenerativeModel> | null = null;
-
-  private getModel() {
-    if (!this.model) {
-      const ai = getAI();
-      this.model = getGenerativeModel(ai, {
-        model: 'gemini-2.5-flash',
+  async analyzeFoodImage(
+    imageBase64: string,
+    mimeType: string = 'image/jpeg',
+  ): Promise<AnalysisSuccess | AnalysisError> {
+    try {
+      const generated = await generateContentWithImageAndText({
         systemInstruction: FOOD_ANALYSIS_SYSTEM_PROMPT,
+        textPrompt: FOOD_ANALYSIS_PROMPT,
+        imageBase64,
+        mimeType,
         generationConfig: {
           temperature: 0.4,
           topK: 32,
@@ -31,38 +33,12 @@ class AIAnalysisService {
           maxOutputTokens: 2048,
         },
       });
-    }
-    return this.model;
-  }
 
-  async analyzeFoodImage(
-    imageBase64: string,
-    mimeType: string = 'image/jpeg',
-  ): Promise<AnalysisSuccess | AnalysisError> {
-    try {
-      const model = this.getModel();
-
-      const result = await model.generateContent([
-        {
-          inlineData: {
-            data: imageBase64,
-            mimeType,
-          },
-        },
-        {
-          text: FOOD_ANALYSIS_PROMPT,
-        },
-      ]);
-
-      const response = result.response;
-      const text = response.text();
-
-      if (!text || text.trim().length === 0) {
-        return {
-          success: false,
-          error: 'AI 응답 없음',
-        };
+      if (!generated.success) {
+        return { success: false, error: generated.error };
       }
+
+      const text = generated.text;
 
       const cleanText = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
 

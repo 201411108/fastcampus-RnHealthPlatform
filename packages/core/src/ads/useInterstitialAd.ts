@@ -1,31 +1,23 @@
-import { useEffect, useState } from 'react';
-import { Platform, StatusBar } from 'react-native';
+import {useEffect, useMemo, useState} from 'react';
+import {Platform, StatusBar} from 'react-native';
 import {
   AdEventType,
   InterstitialAd,
-  TestIds,
 } from 'react-native-google-mobile-ads';
+import type {AdUnitSlot} from './adUnitSlots';
+import {getAdUnitId} from './getAdUnitId';
 
 /**
- * Google 제공 샘플 전면 광고 단위. 프로덕션에서는 환경 변수 등으로 교체합니다.
- * 저장소에 실제 광고 ID를 넣지 않기 위해 기본값으로 테스트 단위를 사용합니다.
+ * 화면(예: 카메라)에서 미리 전면 광고를 로드해 두고 표시할 때 사용합니다.
  */
-const INTERSTITIAL_FALLBACK_UNIT_ID =
-  Platform.OS === 'ios'
-    ? 'ca-app-pub-3940256099942544/4411468910'
-    : 'ca-app-pub-3940256099942544/1033173712';
-
-const interstitialAdUnitId = __DEV__
-  ? TestIds.INTERSTITIAL
-  : INTERSTITIAL_FALLBACK_UNIT_ID;
-
-const interstitial = InterstitialAd.createForAdRequest(
-  interstitialAdUnitId,
-  {},
-);
-
-const useInterstitial = () => {
+export function useInterstitialAd(slot: AdUnitSlot) {
+  const unitId = useMemo(() => getAdUnitId(slot), [slot]);
   const [loaded, setLoaded] = useState(false);
+
+  const interstitial = useMemo(
+    () => InterstitialAd.createForAdRequest(unitId, {}),
+    [unitId],
+  );
 
   useEffect(() => {
     const unsubscribeLoaded = interstitial.addAdEventListener(
@@ -60,9 +52,7 @@ const useInterstitial = () => {
       unsubscribeOpened();
       unsubscribeClosed();
     };
-  }, []);
+  }, [interstitial]);
 
-  return { loaded, interstitial };
-};
-
-export default useInterstitial;
+  return {loaded, interstitial};
+}

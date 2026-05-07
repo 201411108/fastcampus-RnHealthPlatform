@@ -1,6 +1,11 @@
 import React, {useEffect} from 'react';
-import {healthPlatformTag} from '@rn-health/core';
+import {
+  configureAdUnits,
+  healthPlatformTag,
+  initializeMobileAds,
+} from '@rn-health/core';
 import {AICameraNavigator} from '@rn-health/feature-ai-camera';
+import {PedometerNavigator} from '@rn-health/feature-pedometer';
 import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -16,12 +21,13 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import mobileAds from 'react-native-google-mobile-ads';
 import {check, PERMISSIONS, request, RESULTS} from 'react-native-permissions';
+import {productionAdUnits} from './src/adsUnitConfig';
 
 type RootStackParamList = {
   Home: undefined;
   AiCameraFeature: undefined;
+  PedometerFeature: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -44,6 +50,13 @@ function HomeScreen({navigation}: HomeScreenProps) {
         >
           <Text style={styles.primaryButtonLabel}>음식 카메라 기록</Text>
         </Pressable>
+        <Pressable
+          style={styles.secondaryButton}
+          onPress={() => navigation.navigate('PedometerFeature')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.secondaryButtonLabel}>만보기</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -53,9 +66,8 @@ export default function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
   useEffect(() => {
-    mobileAds()
-      .initialize()
-      .then(() => {});
+    configureAdUnits(productionAdUnits);
+    initializeMobileAds().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -78,6 +90,11 @@ export default function App() {
           <Stack.Screen
             name="AiCameraFeature"
             component={AICameraNavigator}
+            options={{headerShown: false}}
+          />
+          <Stack.Screen
+            name="PedometerFeature"
+            component={PedometerNavigator}
             options={{headerShown: false}}
           />
         </Stack.Navigator>
@@ -119,6 +136,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButtonLabel: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    marginTop: 8,
+    backgroundColor: '#2563eb',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  secondaryButtonLabel: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',

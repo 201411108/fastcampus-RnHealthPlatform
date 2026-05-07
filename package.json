@@ -13,7 +13,7 @@
     "mobile:ios": "yarn workspace mobile ios",
     "mobile:lint": "yarn workspace mobile lint",
     "mobile:typecheck": "yarn workspace mobile typecheck",
-    "lint": "eslint apps/mobile packages/feature-ai-camera"
+    "lint": "eslint apps/mobile packages/core packages/feature-ai-camera packages/feature-pedometer"
   },
   "devDependencies": {
     "@react-native/eslint-config": "0.81.5",

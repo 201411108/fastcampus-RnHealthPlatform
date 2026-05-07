@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadAndShowInterstitialForSlot } from '@rn-health/core';
+import { runPedometerHaptic } from '../haptics/pedometerHaptics';
 import {
   appendStepInsightHistory,
   getStepInsightHistory,
@@ -35,8 +36,12 @@ export function useStepInsightAutoTrigger({
   }, []);
 
   const requestStepInsight = useCallback(
-    async (params: { nextStepCount: number; nextGoalStepCount: number }) => {
+    async (
+      params: { nextStepCount: number; nextGoalStepCount: number },
+      options?: { playAiResultHaptic?: boolean },
+    ) => {
       const { nextStepCount, nextGoalStepCount } = params;
+      const playAiResultHaptic = options?.playAiResultHaptic === true;
       if (nextGoalStepCount <= 0 || nextStepCount < 0) {
         return;
       }
@@ -66,10 +71,16 @@ export function useStepInsightAutoTrigger({
         };
         await appendStepInsightHistory(historyItem);
         await refreshStepInsightHistory();
+        if (playAiResultHaptic) {
+          runPedometerHaptic('retrySuccess');
+        }
       } else {
         setStepInsightErrorMessage(
           'AI 인사이트 생성에 실패했습니다. 다시 시도해 주세요.',
         );
+        if (playAiResultHaptic) {
+          runPedometerHaptic('retryFailure');
+        }
       }
       setIsGeneratingStepInsight(false);
     },
@@ -91,10 +102,13 @@ export function useStepInsightAutoTrigger({
       return;
     }
 
-    requestStepInsight({
-      nextStepCount: stepCount,
-      nextGoalStepCount: goalStepCount,
-    });
+    requestStepInsight(
+      {
+        nextStepCount: stepCount,
+        nextGoalStepCount: goalStepCount,
+      },
+      { playAiResultHaptic: true },
+    );
   }, [goalStepCount, isTracking, requestStepInsight, stepCount]);
 
   useEffect(() => {
@@ -113,6 +127,7 @@ export function useStepInsightAutoTrigger({
     }
 
     lastRequestedGoalStepCountRef.current = goalStepCount;
+    runPedometerHaptic('goalReached');
     requestStepInsight({
       nextStepCount: stepCount,
       nextGoalStepCount: goalStepCount,

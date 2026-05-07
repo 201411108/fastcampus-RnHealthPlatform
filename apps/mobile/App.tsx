@@ -1,11 +1,14 @@
-import React, {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import {
   configureAdUnits,
   healthPlatformTag,
   initializeMobileAds,
 } from '@rn-health/core';
 import {AICameraNavigator} from '@rn-health/feature-ai-camera';
-import {PedometerNavigator} from '@rn-health/feature-pedometer';
+import {
+  createExpoStepSensor,
+  PedometerNavigator,
+} from '@rn-health/feature-pedometer';
 import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -64,6 +67,7 @@ function HomeScreen({navigation}: HomeScreenProps) {
 
 export default function App() {
   const isDarkMode = useColorScheme() === 'dark';
+  const expoStepSensor = useMemo(() => createExpoStepSensor(), []);
 
   useEffect(() => {
     configureAdUnits(productionAdUnits);
@@ -92,11 +96,9 @@ export default function App() {
             component={AICameraNavigator}
             options={{headerShown: false}}
           />
-          <Stack.Screen
-            name="PedometerFeature"
-            component={PedometerNavigator}
-            options={{headerShown: false}}
-          />
+          <Stack.Screen name="PedometerFeature" options={{headerShown: false}}>
+            {() => <PedometerNavigator stepSensor={expoStepSensor} />}
+          </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

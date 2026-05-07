@@ -8,7 +8,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import {createDefaultStepSensor} from '../sensor/defaultStepSensor';
+import {runPedometerHaptic} from '../haptics/pedometerHaptics';
+import {createExpoStepSensor} from '../sensor/expoStepSensor';
 import type {StepSensorPort} from '../sensor/types';
 import {useStepCounterBackgroundSync} from '../hooks/useStepCounterBackgroundSync';
 import {
@@ -90,7 +91,7 @@ export function StepTrackingProvider({
 }: StepTrackingProviderProps) {
   const stepSensorRef = useRef<StepSensorPort | null>(null);
   if (stepSensorRef.current == null) {
-    stepSensorRef.current = stepSensorProp ?? createDefaultStepSensor();
+    stepSensorRef.current = stepSensorProp ?? createExpoStepSensor();
   }
   const stepSensor = stepSensorRef.current;
 
@@ -155,6 +156,7 @@ export function StepTrackingProvider({
 
   const stopTracking = useCallback(
     (nextStatusMessage: string) => {
+      runPedometerHaptic('trackingStopped');
       stopForegroundStepTrackingService().catch(() => {});
       subscriptionRef.current?.remove();
       subscriptionRef.current = null;
@@ -180,6 +182,7 @@ export function StepTrackingProvider({
     try {
       const permissionResult = await ensureBackgroundStepPermissions();
       if (permissionResult.status !== 'granted') {
+        runPedometerHaptic('error');
         setErrorMessage(
           getPermissionErrorMessage(
             permissionResult.status,
@@ -191,12 +194,14 @@ export function StepTrackingProvider({
 
       const supportResult = await stepSensor.checkSupport();
       if (!supportResult.supported) {
+        runPedometerHaptic('error');
         setIsDeviceUnsupported(true);
         setErrorMessage('이 기기에서는 걸음 수 추적을 지원하지 않습니다.');
         return;
       }
 
       if (!supportResult.granted) {
+        runPedometerHaptic('error');
         setErrorMessage(
           '걸음 수 권한이 허용되지 않아 추적을 시작할 수 없습니다.',
         );
@@ -213,10 +218,12 @@ export function StepTrackingProvider({
 
       setIsTracking(true);
       setStatusMessage('걸음 수를 추적 중입니다.');
+      runPedometerHaptic('trackingStarted');
     } catch (error) {
       if (isAndroidForegroundServiceStarted) {
         stopForegroundStepTrackingService().catch(() => {});
       }
+      runPedometerHaptic('error');
       setErrorMessage(getErrorMessage(error));
     } finally {
       setIsProcessing(false);
@@ -236,6 +243,7 @@ export function StepTrackingProvider({
     }
 
     if (!hasGoalConfigured) {
+      runPedometerHaptic('validationHint');
       setErrorMessage('목표 걸음수를 먼저 설정해 주세요.');
       setStatusMessage('목표 설정 후 추적을 시작할 수 있습니다.');
       return;

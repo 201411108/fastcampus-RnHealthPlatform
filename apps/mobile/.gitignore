@@ -1,0 +1,9 @@
+# Local overrides for Expo / RN mobile app (monorepo root .gitignore also applies)
+.expo/
+dist/
+web-build/
+
+# Expo
+.expo
+dist/
+web-build/

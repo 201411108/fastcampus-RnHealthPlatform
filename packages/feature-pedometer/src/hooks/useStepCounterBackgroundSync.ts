@@ -1,20 +1,7 @@
-import type {StepCountData} from '@dongminyu/react-native-step-counter';
-import {useCallback, useEffect, useRef} from 'react';
-import type {Dispatch, MutableRefObject, SetStateAction} from 'react';
-import {
-  AppState,
-  type AppStateStatus,
-  NativeModules,
-  Platform,
-} from 'react-native';
-
-type StepCounterQueryNativeModule = {
-  queryStepCounterDataBetweenDates?: (
-    startDate: Date,
-    endDate: Date,
-    handler: (error: string | null, data: StepCountData | null) => void,
-  ) => void;
-};
+import { Pedometer } from 'expo-sensors';
+import { useCallback, useEffect, useRef } from 'react';
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import { AppState, type AppStateStatus, Platform } from 'react-native';
 
 type UseStepCounterBackgroundSyncParams = {
   isTracking: boolean;
@@ -35,30 +22,9 @@ export function useStepCounterBackgroundSync({
 
   const syncIosSessionStepCount = useCallback(
     async (sessionStartDate: Date) => {
-      const nativeModule = NativeModules.StepCounter as
-        | StepCounterQueryNativeModule
-        | undefined;
-      const queryStepCounterDataBetweenDates =
-        nativeModule?.queryStepCounterDataBetweenDates;
-      if (!queryStepCounterDataBetweenDates) {
-        return;
-      }
-
       const now = new Date();
-      const syncedStepCount = await new Promise<number>((resolve, reject) => {
-        queryStepCounterDataBetweenDates(
-          sessionStartDate,
-          now,
-          (error, data) => {
-            if (error) {
-              reject(new Error(error));
-              return;
-            }
-
-            resolve(Math.max(0, Math.round(data?.steps ?? 0)));
-          },
-        );
-      });
+      const result = await Pedometer.getStepCountAsync(sessionStartDate, now);
+      const syncedStepCount = Math.max(0, Math.round(result.steps));
 
       setStepCount((previous: number) =>
         syncedStepCount > previous ? syncedStepCount : previous,

@@ -20,6 +20,7 @@
     "@react-navigation/native-stack": "^7.14.5",
     "@rn-health/core": "workspace:*",
     "@rn-health/feature-ai-camera": "workspace:*",
+    "@rn-health/feature-daily-report": "workspace:*",
     "@rn-health/feature-pedometer": "workspace:*",
     "@shopify/react-native-skia": "^2.6.2",
     "expo": "~54.0.0",

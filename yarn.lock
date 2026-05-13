@@ -3575,6 +3575,25 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rn-health/feature-daily-report@workspace:*, @rn-health/feature-daily-report@workspace:packages/feature-daily-report":
+  version: 0.0.0-use.local
+  resolution: "@rn-health/feature-daily-report@workspace:packages/feature-daily-report"
+  dependencies:
+    "@rn-health/core": "workspace:*"
+    "@types/react": "npm:^19.1.0"
+    typescript: "npm:^5.8.3"
+  peerDependencies:
+    "@react-native-async-storage/async-storage": ^3.0.1
+    "@react-native-firebase/ai": ^23.8.8
+    "@react-navigation/native": ^7.2.2
+    "@react-navigation/native-stack": ^7.14.5
+    react: 19.1.0
+    react-native: 0.81.5
+    react-native-safe-area-context: ^5.7.0
+    react-native-screens: ^4.24.0
+  languageName: unknown
+  linkType: soft
+
 "@rn-health/feature-pedometer@workspace:*, @rn-health/feature-pedometer@workspace:packages/feature-pedometer":
   version: 0.0.0-use.local
   resolution: "@rn-health/feature-pedometer@workspace:packages/feature-pedometer"
@@ -8644,6 +8663,7 @@ __metadata:
     "@react-navigation/native-stack": "npm:^7.14.5"
     "@rn-health/core": "workspace:*"
     "@rn-health/feature-ai-camera": "workspace:*"
+    "@rn-health/feature-daily-report": "workspace:*"
     "@rn-health/feature-pedometer": "workspace:*"
     "@shopify/react-native-skia": "npm:^2.6.2"
     "@types/react": "npm:^19.1.0"

@@ -5,6 +5,7 @@ import {
   initializeMobileAds,
 } from '@rn-health/core';
 import {AICameraNavigator} from '@rn-health/feature-ai-camera';
+import {DailyReportNavigator} from '@rn-health/feature-daily-report';
 import {
   createExpoStepSensor,
   PedometerNavigator,
@@ -26,10 +27,12 @@ import {
 } from 'react-native';
 import {check, PERMISSIONS, request, RESULTS} from 'react-native-permissions';
 import {productionAdUnits} from './src/adsUnitConfig';
+import {dailyReportDataSources} from './src/dailyReportDataSources';
 
 type RootStackParamList = {
   Home: undefined;
   AiCameraFeature: undefined;
+  DailyReportFeature: undefined;
   PedometerFeature: undefined;
 };
 
@@ -59,6 +62,13 @@ function HomeScreen({navigation}: HomeScreenProps) {
           accessibilityRole="button"
         >
           <Text style={styles.secondaryButtonLabel}>만보기</Text>
+        </Pressable>
+        <Pressable
+          style={styles.reportButton}
+          onPress={() => navigation.navigate('DailyReportFeature')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.reportButtonLabel}>건강 리포트</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -98,6 +108,11 @@ export default function App() {
           />
           <Stack.Screen name="PedometerFeature" options={{headerShown: false}}>
             {() => <PedometerNavigator stepSensor={expoStepSensor} />}
+          </Stack.Screen>
+          <Stack.Screen name="DailyReportFeature" options={{headerShown: false}}>
+            {() => (
+              <DailyReportNavigator dataSources={dailyReportDataSources} />
+            )}
           </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
@@ -152,6 +167,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   secondaryButtonLabel: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  reportButton: {
+    marginTop: 8,
+    backgroundColor: '#047857',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  reportButtonLabel: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',

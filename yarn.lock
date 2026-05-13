@@ -3539,15 +3539,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rn-health/core@workspace:packages/core"
   dependencies:
-    "@react-native-firebase/ai": "npm:^23.8.8"
-    "@react-native-firebase/app": "npm:^23.8.8"
     "@types/react": "npm:^19.1.0"
     react-native: "npm:0.81.5"
     react-native-google-mobile-ads: "npm:^16.3.0"
     typescript: "npm:^5.8.3"
   peerDependencies:
-    "@react-native-firebase/ai": ^23.8.8
-    "@react-native-firebase/app": ^23.8.8
     react: 19.1.0
     react-native: 0.81.5
     react-native-google-mobile-ads: ^16.3.0

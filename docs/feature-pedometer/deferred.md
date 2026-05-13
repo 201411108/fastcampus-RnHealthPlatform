@@ -17,7 +17,7 @@
 ## Firebase AI 인사이트 · 기록
 
 **걸음 인사이트 및 히스토리**  
-→ `generateTextFromPrompt`(`@rn-health/core`) 기반 `stepInsightAi`, `stepInsightHistoryStorage`, `useStepInsightAutoTrigger`, `StepInsightResultCard`, `StepInsightHistoryList`로 복원됨.
+→ feature 내부 `generateTextFromPrompt` 기반 `stepInsightAi`, `stepInsightHistoryStorage`, `useStepInsightAutoTrigger`, `StepInsightResultCard`, `StepInsightHistoryList`로 복원됨.
 
 ## 알림 · FCM
 

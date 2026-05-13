@@ -1,5 +1,5 @@
-import { FoodRecord, RECORDS_KEY } from '../types/record';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RECORDS_KEY, type FoodRecord } from '../types/record';
 
 class StorageService {
   async getRecords(): Promise<FoodRecord[]> {

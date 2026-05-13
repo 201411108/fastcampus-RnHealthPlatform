@@ -1,10 +1,3 @@
-import type { FoodAnalysisResult } from './nutrition';
-
-export interface FoodRecord {
-  id: string;
-  createdAt: string;
-  imageUri: string;
-  analysisResult: FoodAnalysisResult;
-}
+export type {FoodRecord} from '@rn-health/core';
 
 export const RECORDS_KEY = '@food_records';

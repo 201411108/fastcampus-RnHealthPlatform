@@ -1,4 +1,11 @@
-import {createGeminiGenerativeModel} from './createGeminiGenerativeModel';
+import {getAI, getGenerativeModel} from '@react-native-firebase/ai';
+
+type GenerationConfig = {
+  temperature?: number;
+  topK?: number;
+  topP?: number;
+  maxOutputTokens?: number;
+};
 
 export type GenerateTextResult =
   | {success: true; text: string}
@@ -7,14 +14,8 @@ export type GenerateTextResult =
 export type GenerateTextFromPromptParams = {
   model?: string;
   systemInstruction?: string;
-  generationConfig?: {
-    temperature?: number;
-    topK?: number;
-    topP?: number;
-    maxOutputTokens?: number;
-  };
+  generationConfig?: GenerationConfig;
   prompt: string;
-  /** 기본 10_000ms */
   timeoutMs?: number;
 };
 
@@ -27,6 +28,7 @@ function withTimeout<T>(
   const timeoutPromise = new Promise<T>((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
   });
+
   return Promise.race([promise, timeoutPromise]).then(
     value => {
       if (timeoutId) {
@@ -48,8 +50,9 @@ export async function generateTextFromPrompt(
 ): Promise<GenerateTextResult> {
   const timeoutMs = params.timeoutMs ?? 10_000;
   try {
-    const model = createGeminiGenerativeModel({
-      model: params.model,
+    const ai = getAI();
+    const model = getGenerativeModel(ai, {
+      model: params.model ?? 'gemini-2.5-flash',
       systemInstruction: params.systemInstruction,
       generationConfig: params.generationConfig,
     });
@@ -61,7 +64,6 @@ export async function generateTextFromPrompt(
     );
 
     const text = result.response.text();
-
     if (!text || text.trim().length === 0) {
       return {success: false, error: 'AI 응답 없음'};
     }

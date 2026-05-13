@@ -1,9 +1,14 @@
-import { generateContentWithImageAndText } from '@rn-health/core';
+import {
+  extractFirstJsonObject,
+  normalizeFoodAnalysisResult,
+  parseJsonObject,
+} from '@rn-health/core';
+import { generateContentWithImageAndText } from './generateContentWithImageAndText';
 import {
   FOOD_ANALYSIS_PROMPT,
   FOOD_ANALYSIS_SYSTEM_PROMPT,
 } from '../constants/prompts';
-import { FoodAnalysisResult } from '../types/nutrition';
+import type { FoodAnalysisResult } from '../types/nutrition';
 
 interface AnalysisSuccess {
   success: true;
@@ -38,12 +43,8 @@ class AIAnalysisService {
         return { success: false, error: generated.error };
       }
 
-      const text = generated.text;
-
-      const cleanText = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-
-      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      const jsonString = extractFirstJsonObject(generated.text);
+      if (!jsonString) {
         console.log('json 매치 에러');
         return {
           success: false,
@@ -54,42 +55,23 @@ class AIAnalysisService {
       let parsed: FoodAnalysisResult;
 
       try {
-        const jsonString = jsonMatch[0];
-
-        const openBarce = (jsonString.match(/\{/g) || []).length;
-        const closeBarce = (jsonString.match(/\}/g) || []).length;
-
-        if (openBarce !== closeBarce) {
-          console.log('openBarce !== closeBarce');
+        const normalized = normalizeFoodAnalysisResult(
+          parseJsonObject<unknown>(jsonString),
+        );
+        if (!normalized) {
+          console.log('유효하지 않은 분석 결과');
           return {
             success: false,
-            error: '유효하지 않은 JSON 형식',
+            error: '유효하지 않은 분석 결과',
           };
         }
-
-        parsed = JSON.parse(jsonString);
+        parsed = normalized;
       } catch (error) {
         console.log('JSON 파싱 오류');
         return {
           success: false,
           error: 'JSON 파싱 오류',
         };
-      }
-
-      if (!parsed.food_name || typeof parsed.calories !== 'number') {
-        console.log('유효하지 않은 분석 결과');
-        return {
-          success: false,
-          error: '유효하지 않은 분석 결과',
-        };
-      }
-
-      if (!parsed.nutrition) {
-        parsed.nutrition = { protein: 0, carbs: 0, fat: 0 };
-      }
-
-      if (typeof parsed.confidence !== 'number') {
-        parsed.confidence = 0;
       }
 
       return {

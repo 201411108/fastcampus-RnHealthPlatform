@@ -1,9 +1,12 @@
-import { generateTextFromPrompt } from '@rn-health/core';
 import {
+  normalizeStepInsightResult,
+  parseJsonObject,
+  stripJsonCodeFence,
   STEP_INSIGHT_FIELD_MAX_LENGTH,
   STEP_INSIGHT_SENTENCE_RULE,
   type StepInsightResult,
-} from '../types/stepInsight';
+} from '@rn-health/core';
+import { generateTextFromPrompt } from './generateTextFromPrompt';
 
 const STEP_INSIGHT_MODEL = 'gemini-2.5-flash';
 
@@ -18,8 +21,6 @@ type GenerateStepInsightWithAiResult = {
   isFallback: boolean;
 };
 
-type ParsedStepInsightResult = Partial<Record<keyof StepInsightResult, unknown>>;
-
 const STEP_INSIGHT_FALLBACK_RESULT: StepInsightResult = {
   summary: '오늘 걸음 데이터를 바탕으로 요약을 준비하지 못했습니다.',
   insight: '현재 걸음 흐름을 바탕으로 다음 패턴을 분석 중입니다.',
@@ -30,50 +31,12 @@ function isValidNumber(value: number) {
   return Number.isFinite(value);
 }
 
-function normalizeFieldText(value: unknown): string {
-  if (typeof value !== 'string') {
-    return '';
+function parseInsightResponse(rawText: string): StepInsightResult | null {
+  const parsed = parseJsonObject<unknown>(stripJsonCodeFence(rawText));
+  if (!parsed) {
+    return null;
   }
-
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return '';
-  }
-
-  const sentenceMatches =
-    trimmed.match(/[^.!?]+[.!?]+/g) ?? (trimmed.length > 0 ? [trimmed] : []);
-  const limitedSentences = sentenceMatches.slice(0, STEP_INSIGHT_SENTENCE_RULE.max);
-  const joined = limitedSentences.join(' ').trim();
-
-  if (!joined) {
-    return '';
-  }
-
-  return joined.slice(0, STEP_INSIGHT_FIELD_MAX_LENGTH).trim();
-}
-
-function normalizeInsightResult(payload: ParsedStepInsightResult): StepInsightResult {
-  const summary = normalizeFieldText(payload.summary);
-  const insight = normalizeFieldText(payload.insight);
-  const motivation = normalizeFieldText(payload.motivation);
-
-  return {
-    summary: summary || STEP_INSIGHT_FALLBACK_RESULT.summary,
-    insight: insight || STEP_INSIGHT_FALLBACK_RESULT.insight,
-    motivation: motivation || STEP_INSIGHT_FALLBACK_RESULT.motivation,
-  };
-}
-
-function parseInsightResponse(rawText: string): StepInsightResult {
-  const normalizedText = rawText
-    .trim()
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
-
-  const parsed = JSON.parse(normalizedText) as ParsedStepInsightResult;
-  return normalizeInsightResult(parsed);
+  return normalizeStepInsightResult(parsed);
 }
 
 function buildPrompt({ stepCount, goalStepCount, progressPercent }: StepInsightAiInput) {
@@ -123,9 +86,10 @@ export async function generateStepInsightWithAi(
       };
     }
 
+    const parsed = parseInsightResponse(generated.text);
     return {
-      data: parseInsightResponse(generated.text),
-      isFallback: false,
+      data: parsed ?? STEP_INSIGHT_FALLBACK_RESULT,
+      isFallback: parsed === null,
     };
   } catch {
     return {

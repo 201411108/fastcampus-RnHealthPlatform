@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { loadAndShowInterstitialForSlot } from '@rn-health/core';
+import {
+  calculateProgressPercent,
+  loadAndShowInterstitialForSlot,
+} from '@rn-health/core';
 import { runPedometerHaptic } from '../haptics/pedometerHaptics';
 import {
   appendStepInsightHistory,
@@ -49,7 +52,10 @@ export function useStepInsightAutoTrigger({
       setIsGeneratingStepInsight(true);
       setStepInsightErrorMessage('');
 
-      const progressPercent = (nextStepCount / nextGoalStepCount) * 100;
+      const progressPercent = calculateProgressPercent(
+        nextStepCount,
+        nextGoalStepCount,
+      );
       const [result] = await Promise.all([
         generateStepInsightWithAi({
           stepCount: nextStepCount,

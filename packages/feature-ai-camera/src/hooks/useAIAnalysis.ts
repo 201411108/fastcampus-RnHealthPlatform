@@ -2,7 +2,7 @@ import RNFS from 'react-native-fs';
 import { Platform } from 'react-native';
 import aiAnalysisService from '../services/aiAnalysisService';
 import firebaseStorageService from '../services/firebaseStorageService';
-import { FoodAnalysisResult } from '../types/nutrition';
+import type { FoodAnalysisResult } from '../types/nutrition';
 import { useState } from 'react';
 
 type AnalyzeFoodImageSuccess = {

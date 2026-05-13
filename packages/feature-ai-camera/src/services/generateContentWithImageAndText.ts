@@ -1,4 +1,11 @@
-import {createGeminiGenerativeModel} from './createGeminiGenerativeModel';
+import {getAI, getGenerativeModel} from '@react-native-firebase/ai';
+
+type GenerationConfig = {
+  temperature?: number;
+  topK?: number;
+  topP?: number;
+  maxOutputTokens?: number;
+};
 
 export type GenerateImageAndTextResult =
   | {success: true; text: string}
@@ -7,12 +14,7 @@ export type GenerateImageAndTextResult =
 export type GenerateContentWithImageAndTextParams = {
   model?: string;
   systemInstruction?: string;
-  generationConfig?: {
-    temperature?: number;
-    topK?: number;
-    topP?: number;
-    maxOutputTokens?: number;
-  };
+  generationConfig?: GenerationConfig;
   imageBase64: string;
   mimeType?: string;
   textPrompt: string;
@@ -22,8 +24,9 @@ export async function generateContentWithImageAndText(
   params: GenerateContentWithImageAndTextParams,
 ): Promise<GenerateImageAndTextResult> {
   try {
-    const model = createGeminiGenerativeModel({
-      model: params.model,
+    const ai = getAI();
+    const model = getGenerativeModel(ai, {
+      model: params.model ?? 'gemini-2.5-flash',
       systemInstruction: params.systemInstruction,
       generationConfig: params.generationConfig,
     });
@@ -39,7 +42,6 @@ export async function generateContentWithImageAndText(
     ]);
 
     const text = result.response.text();
-
     if (!text || text.trim().length === 0) {
       return {success: false, error: 'AI 응답 없음'};
     }

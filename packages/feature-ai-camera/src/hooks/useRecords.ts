@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FoodRecord } from '../types/record';
+import type { FoodRecord } from '../types/record';
 import storageService from '../services/storageService';
 
 const useRecords = () => {

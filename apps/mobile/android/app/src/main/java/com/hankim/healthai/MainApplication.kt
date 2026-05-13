@@ -18,7 +18,7 @@ class MainApplication : Application(), ReactApplication {
       ReactNativeHostWrapper(this, object : DefaultReactNativeHost(this) {
         override fun getPackages() = PackageList(this).packages
 
-        override fun getJSMainModuleName(): String = "index"
+        override fun getJSMainModuleName(): String = "apps/mobile/index"
 
         override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
 

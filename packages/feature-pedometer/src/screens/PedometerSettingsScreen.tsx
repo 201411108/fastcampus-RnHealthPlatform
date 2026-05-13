@@ -8,11 +8,8 @@ import {
   View,
 } from 'react-native';
 import {PRIVACY_POLICY_URL} from '../constants/legalUrls';
-import type {PedometerSettingsScreenProps} from '../navigation/types';
 
-export default function PedometerSettingsScreen(
-  _props: PedometerSettingsScreenProps,
-) {
+export default function PedometerSettingsScreen() {
   const openPrivacyPolicy = useCallback(async () => {
     const url = PRIVACY_POLICY_URL.trim();
     if (!url) {

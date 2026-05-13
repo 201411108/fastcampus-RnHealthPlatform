@@ -3,11 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import StepInsightHistoryList from '../components/StepInsightHistoryList';
 import { useStepTrackingContext } from '../providers/StepTrackingProvider';
-import type { PedometerHistoryScreenProps } from '../navigation/types';
 
-export default function PedometerHistoryScreen(
-  _props: PedometerHistoryScreenProps,
-) {
+export default function PedometerHistoryScreen() {
   const { stepInsightHistory, refreshStepInsightHistory } =
     useStepTrackingContext();
 

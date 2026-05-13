@@ -17,13 +17,18 @@ import {
 } from 'react-native-vision-camera';
 import useAIAnalysis from '../hooks/useAIAnalysis';
 import useRecords from '../hooks/useRecords';
-import type { CameraCaptureScreenProps } from '../navigation/types';
 import { useInterstitialAd } from '@rn-health/core';
 import {
   AnalyzingOverlay,
   PermissionDeniedState,
 } from '../components/FeatureStates';
 import { colors } from '../theme/tokens';
+
+type CameraCaptureScreenProps = {
+  navigation: {
+    goBack: () => void;
+  };
+};
 
 function CameraCaptureScreen({ navigation }: CameraCaptureScreenProps) {
   const device = useCameraDevice('back');

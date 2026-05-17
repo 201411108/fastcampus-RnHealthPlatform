@@ -8,8 +8,7 @@ import type { AdUnitsProductionIds } from '@rn-health/core';
 const TEST_BANNER_IOS = 'ca-app-pub-3940256099942544/2934735716';
 const TEST_BANNER_ANDROID = 'ca-app-pub-3940256099942544/6300978111';
 const TEST_INTERSTITIAL_IOS = 'ca-app-pub-3940256099942544/4411468910';
-const TEST_INTERSTITIAL_ANDROID =
-  'ca-app-pub-3940256099942544/1033173712';
+const TEST_INTERSTITIAL_ANDROID = 'ca-app-pub-3940256099942544/1033173712';
 
 /**
  * 프로덕션 빌드에서 사용할 OS별 광고 단위.
@@ -22,9 +21,13 @@ export const productionAdUnits: AdUnitsProductionIds = {
     interstitial:
       Platform.OS === 'ios' ? TEST_INTERSTITIAL_IOS : TEST_INTERSTITIAL_ANDROID,
   },
-  pedometer: {
-    homeBanner:
+  mainTabs: {
+    homeBanner: Platform.OS === 'ios' ? TEST_BANNER_IOS : TEST_BANNER_ANDROID,
+    historyBanner:
       Platform.OS === 'ios' ? TEST_BANNER_IOS : TEST_BANNER_ANDROID,
+  },
+  pedometer: {
+    homeBanner: Platform.OS === 'ios' ? TEST_BANNER_IOS : TEST_BANNER_ANDROID,
     goalInsightInterstitial:
       Platform.OS === 'ios' ? TEST_INTERSTITIAL_IOS : TEST_INTERSTITIAL_ANDROID,
   },

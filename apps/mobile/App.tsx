@@ -1,5 +1,5 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import {configureAdUnits, initializeMobileAds} from '@rn-health/core';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { configureAdUnits, initializeMobileAds } from '@rn-health/core';
 import {
   CameraCaptureScreen,
   RecordDetailModal,
@@ -7,7 +7,7 @@ import {
   useRecords,
   type FoodRecord,
 } from '@rn-health/feature-ai-camera';
-import {DailyReportNavigator} from '@rn-health/feature-daily-report';
+import { DailyReportNavigator } from '@rn-health/feature-daily-report';
 import {
   createExpoStepSensor,
   PedometerHistoryScreen,
@@ -15,7 +15,7 @@ import {
   StepTrackingProvider,
   type StepSensorPort,
 } from '@rn-health/feature-pedometer';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   NavigationContainer,
   DefaultTheme,
@@ -40,17 +40,18 @@ import {
   KeyboardAwareScrollView,
   KeyboardProvider,
 } from 'react-native-keyboard-controller';
-import {GestureHandlerRootView} from 'react-native-gesture-handler';
-import {check, PERMISSIONS, request, RESULTS} from 'react-native-permissions';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { check, PERMISSIONS, request, RESULTS } from 'react-native-permissions';
 import {
   SafeAreaProvider,
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import {productionAdUnits} from './src/adsUnitConfig';
-import {HomePedometerCard} from './src/components/HomePedometerCard';
-import {dailyReportDataSources} from './src/dailyReportDataSources';
-import {weeklyReportDataSources} from './src/weeklyReportDataSources';
+import { productionAdUnits } from './src/adsUnitConfig';
+import { HomePedometerCard } from './src/components/HomePedometerCard';
+import { MainTabBannerAd } from './src/components/MainTabBannerAd';
+import { dailyReportDataSources } from './src/dailyReportDataSources';
+import { weeklyReportDataSources } from './src/weeklyReportDataSources';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -90,7 +91,7 @@ function HomeDashboardScreen({
   onOpenCamera,
   bottomPadding,
 }: HomeDashboardScreenProps) {
-  const {records, isLoading, refreshRecords} = useRecords();
+  const { records, isLoading, refreshRecords } = useRecords();
 
   useFocusEffect(
     useCallback(() => {
@@ -104,11 +105,16 @@ function HomeDashboardScreen({
         style={styles.homeScroll}
         contentContainerStyle={[
           styles.homeContent,
-          {paddingBottom: bottomPadding + spacing.xl},
+          { paddingBottom: bottomPadding + spacing.xl },
         ]}
         keyboardShouldPersistTaps="handled"
         bottomOffset={spacing.md}
       >
+        <MainTabBannerAd
+          slot="mainTabs.homeBanner"
+          containerStyle={styles.homeBannerSlot}
+        />
+
         <View style={styles.heroCard}>
           <Text style={styles.kicker}>AI 헬스 플랫폼</Text>
           <Text style={styles.heroTitle}>오늘의 건강 흐름을 한 곳에서</Text>
@@ -151,10 +157,11 @@ function HomeDashboardScreen({
   );
 }
 
-function HistoryScreen({onOpenCamera, bottomPadding}: HistoryScreenProps) {
+function HistoryScreen({ onOpenCamera, bottomPadding }: HistoryScreenProps) {
   const [selectedTab, setSelectedTab] = useState<'food' | 'steps'>('food');
   const [selectedRecord, setSelectedRecord] = useState<FoodRecord | null>(null);
-  const {records, isLoading, error, deleteRecord, refreshRecords} = useRecords();
+  const { records, isLoading, error, deleteRecord, refreshRecords } =
+    useRecords();
 
   useFocusEffect(
     useCallback(() => {
@@ -172,7 +179,7 @@ function HistoryScreen({onOpenCamera, bottomPadding}: HistoryScreenProps) {
         '기록 삭제',
         `${record.analysisResult.food_name}을 삭제하시겠습니까?`,
         [
-          {text: '취소', style: 'cancel'},
+          { text: '취소', style: 'cancel' },
           {
             text: '삭제',
             style: 'destructive',
@@ -188,7 +195,12 @@ function HistoryScreen({onOpenCamera, bottomPadding}: HistoryScreenProps) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.historyRoot, {paddingBottom: bottomPadding}]}>
+      <View style={[styles.historyRoot, { paddingBottom: bottomPadding }]}>
+        <MainTabBannerAd
+          slot="mainTabs.historyBanner"
+          containerStyle={styles.historyBannerSlot}
+        />
+
         <View style={styles.headerBlock}>
           <Text style={styles.screenTitle}>히스토리</Text>
           <Text style={styles.screenDescription}>
@@ -265,7 +277,7 @@ function HistoryScreen({onOpenCamera, bottomPadding}: HistoryScreenProps) {
                 </View>
               ) : null
             }
-            renderItem={({item}) => (
+            renderItem={({ item }) => (
               <RecordItem
                 record={item}
                 onPress={() => setSelectedRecord(item)}
@@ -288,10 +300,10 @@ function HistoryScreen({onOpenCamera, bottomPadding}: HistoryScreenProps) {
   );
 }
 
-function SettingsScreen({bottomPadding}: SettingsScreenProps) {
+function SettingsScreen({ bottomPadding }: SettingsScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.settingsRoot, {paddingBottom: bottomPadding}]}>
+      <View style={[styles.settingsRoot, { paddingBottom: bottomPadding }]}>
         <View style={styles.headerBlock}>
           <Text style={styles.screenTitle}>설정</Text>
           <Text style={styles.screenDescription}>
@@ -304,10 +316,11 @@ function SettingsScreen({bottomPadding}: SettingsScreenProps) {
   );
 }
 
-function MainTabs({stepSensor, onOpenCamera}: MainTabsProps) {
+function MainTabs({ stepSensor, onOpenCamera }: MainTabsProps) {
   const insets = useSafeAreaInsets();
   const tabBarBottomOffset = Platform.OS === 'android' ? insets.bottom : 0;
-  const tabBarBottomPadding = Platform.OS === 'ios' ? insets.bottom : spacing.xs;
+  const tabBarBottomPadding =
+    Platform.OS === 'ios' ? insets.bottom : spacing.xs;
   const tabBarHeight =
     tabBarBaseHeight + (Platform.OS === 'ios' ? insets.bottom : 0);
   const contentBottomPadding = tabBarHeight + tabBarBottomOffset;
@@ -330,7 +343,7 @@ function MainTabs({stepSensor, onOpenCamera}: MainTabsProps) {
           tabBarLabelStyle: styles.tabBarLabel,
         }}
       >
-        <Tab.Screen name="Home" options={{title: '홈'}}>
+        <Tab.Screen name="Home" options={{ title: '홈' }}>
           {() => (
             <HomeDashboardScreen
               onOpenCamera={onOpenCamera}
@@ -338,7 +351,7 @@ function MainTabs({stepSensor, onOpenCamera}: MainTabsProps) {
             />
           )}
         </Tab.Screen>
-        <Tab.Screen name="History" options={{title: '히스토리'}}>
+        <Tab.Screen name="History" options={{ title: '히스토리' }}>
           {() => (
             <HistoryScreen
               onOpenCamera={onOpenCamera}
@@ -346,12 +359,12 @@ function MainTabs({stepSensor, onOpenCamera}: MainTabsProps) {
             />
           )}
         </Tab.Screen>
-        <Tab.Screen name="DailyReport" options={{title: '데일리 리포트'}}>
+        <Tab.Screen name="DailyReport" options={{ title: '데일리 리포트' }}>
           {() => (
             <View
               style={[
                 styles.dailyReportTabContent,
-                {paddingBottom: contentBottomPadding},
+                { paddingBottom: contentBottomPadding },
               ]}
             >
               <DailyReportNavigator
@@ -361,7 +374,7 @@ function MainTabs({stepSensor, onOpenCamera}: MainTabsProps) {
             </View>
           )}
         </Tab.Screen>
-        <Tab.Screen name="Settings" options={{title: '설정'}}>
+        <Tab.Screen name="Settings" options={{ title: '설정' }}>
           {() => <SettingsScreen bottomPadding={contentBottomPadding} />}
         </Tab.Screen>
       </Tab.Navigator>
@@ -374,7 +387,7 @@ type MainTabsScreenProps = NativeStackScreenProps<
   'MainTabs'
 >;
 
-function MainTabsScreen({navigation}: MainTabsScreenProps) {
+function MainTabsScreen({ navigation }: MainTabsScreenProps) {
   const expoStepSensor = useMemo(() => createExpoStepSensor(), []);
 
   return (
@@ -414,11 +427,11 @@ export default function App() {
               <Stack.Screen
                 name="MainTabs"
                 component={MainTabsScreen}
-                options={{headerShown: false}}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="CameraCapture"
-                options={{headerShown: false, animation: 'slide_from_bottom'}}
+                options={{ headerShown: false, animation: 'slide_from_bottom' }}
               >
                 {props => <CameraCaptureScreen navigation={props.navigation} />}
               </Stack.Screen>
@@ -471,6 +484,9 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.xl,
     backgroundColor: appColors.background,
+  },
+  homeBannerSlot: {
+    alignSelf: 'stretch',
   },
   heroCard: {
     borderRadius: 20,
@@ -552,9 +568,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  disabledButton: {
-    opacity: 0.5,
-  },
   historyRoot: {
     flex: 1,
     paddingHorizontal: spacing.xl,
@@ -607,6 +620,9 @@ const styles = StyleSheet.create({
   },
   segmentButtonLabelActive: {
     color: appColors.primary,
+  },
+  historyBannerSlot: {
+    alignSelf: 'stretch',
   },
   historyListContent: {
     gap: spacing.md,

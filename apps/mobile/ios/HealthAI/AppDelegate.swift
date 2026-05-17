@@ -25,7 +25,7 @@ class AppDelegate: ExpoAppDelegate {
     window = UIWindow(frame: UIScreen.main.bounds)
 
     factory.startReactNative(
-      withModuleName: "template",
+      withModuleName: "HealthAI",
       in: window,
       launchOptions: launchOptions
     )

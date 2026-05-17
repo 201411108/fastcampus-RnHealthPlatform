@@ -74,6 +74,19 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def releaseKeystoreProperties = new Properties()
+def releaseKeystorePropertiesFile = rootProject.file("release-keystore.properties")
+if (releaseKeystorePropertiesFile.exists()) {
+    releaseKeystorePropertiesFile.withInputStream { releaseKeystoreProperties.load(it) }
+}
+
+def releaseStoreFileRelative = releaseKeystoreProperties["storeFile"]?.trim()
+
+def hasReleaseKeystoreSigning = releaseKeystorePropertiesFile.exists() &&
+    releaseStoreFileRelative &&
+    releaseStoreFileRelative.length() > 0 &&
+    rootProject.file(releaseStoreFileRelative).exists()
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -94,15 +107,23 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (hasReleaseKeystoreSigning) {
+                storeFile rootProject.file(releaseStoreFileRelative)
+                storePassword releaseKeystoreProperties["storePassword"]
+                keyAlias releaseKeystoreProperties["keyAlias"]
+                keyPassword releaseKeystoreProperties["keyPassword"]
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (hasReleaseKeystoreSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
@@ -117,5 +138,23 @@ dependencies {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
+    }
+}
+
+gradle.taskGraph.whenReady {
+    def graph = gradle.taskGraph
+    def requestsReleaseArtifacts = graph.allTasks.any { task ->
+        task.name == "assembleRelease" || task.name == "bundleRelease" || task.name == "installRelease"
+    }
+    if (!requestsReleaseArtifacts) {
+        return
+    }
+    if (!releaseKeystorePropertiesFile.exists()) {
+        throw new GradleException(
+                "Release builds require apps/mobile/android/release-keystore.properties. Copy release-keystore.properties.example and set storeFile, passwords, and keyAlias.")
+    }
+    if (!hasReleaseKeystoreSigning) {
+        throw new GradleException(
+                "release-keystore.properties: storeFile must be a path relative to android/, and that keystore file must exist.")
     }
 }

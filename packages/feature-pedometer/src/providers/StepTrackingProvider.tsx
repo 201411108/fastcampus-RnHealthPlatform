@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import {toISODate} from '@rn-health/core';
 import {runPedometerHaptic} from '../haptics/pedometerHaptics';
 import {createExpoStepSensor} from '../sensor/expoStepSensor';
 import type {StepSensorPort} from '../sensor/types';
@@ -16,6 +17,7 @@ import {
   startForegroundStepTrackingService,
   stopForegroundStepTrackingService,
 } from '../services/stepForegroundService';
+import {saveDailyStepSnapshot} from '../services/dailyStepSnapshotStorage';
 import {ensureBackgroundStepPermissions} from '../utils/activityRecognition';
 import {useStepInsightAutoTrigger} from '../hooks/useStepInsightAutoTrigger';
 import type {
@@ -39,8 +41,13 @@ export type StepTrackingContextValue = {
   stepInsightResult: StepInsightResult;
   stepInsightHistory: StepInsightHistoryItem[];
   refreshStepInsightHistory: () => Promise<void>;
-  canRegenerateStepInsight: boolean;
-  regenerateStepInsight: () => void;
+  showGoalAchievementInsightCta: boolean;
+  canRegenerateStepInsightWithAd: boolean;
+  requestGoalInsightFromUser: () => void;
+  requestStepInsightWithAd: (
+    params: { nextStepCount: number; nextGoalStepCount: number },
+    options?: { playAiResultHaptic?: boolean },
+  ) => Promise<void>;
 };
 
 const StepTrackingContext = createContext<StepTrackingContextValue | null>(
@@ -116,16 +123,29 @@ export function StepTrackingProvider({
     setErrorMessage,
   });
 
+  useEffect(() => {
+    if (goalStepCount === null || goalStepCount <= 0) {
+      return;
+    }
+    saveDailyStepSnapshot({
+      date: toISODate(new Date()),
+      stepCount,
+      goalStepCount,
+    }).catch(() => {});
+  }, [goalStepCount, stepCount]);
+
   const {
     isGeneratingStepInsight,
     stepInsightErrorMessage,
     stepInsightResult,
     stepInsightHistory,
     refreshStepInsightHistory,
-    regenerateStepInsight,
+    requestGoalInsightFromUser,
+    requestStepInsightWithAd,
+    showGoalAchievementInsightCta,
+    canRegenerateStepInsightWithAd,
     resetStepInsightAutoTrigger,
   } = useStepInsightAutoTrigger({
-    isTracking,
     stepCount,
     goalStepCount,
   });
@@ -162,11 +182,10 @@ export function StepTrackingProvider({
       subscriptionRef.current = null;
       stepSensor.stopAll();
       sessionStartRef.current = null;
-      resetStepInsightAutoTrigger();
       setIsTracking(false);
       setStatusMessage(nextStatusMessage);
     },
-    [resetStepInsightAutoTrigger, stepSensor],
+    [stepSensor],
   );
 
   const startTracking = useCallback(async () => {
@@ -254,11 +273,6 @@ export function StepTrackingProvider({
 
   const isStartDisabled =
     !isTracking && (!hasGoalConfigured || isProcessing);
-  const canRegenerateStepInsight =
-    isTracking &&
-    goalStepCount !== null &&
-    goalStepCount > 0;
-
   useEffect(() => {
     return () => {
       stopForegroundStepTrackingService().catch(() => {});
@@ -285,11 +299,13 @@ export function StepTrackingProvider({
       stepInsightResult,
       stepInsightHistory,
       refreshStepInsightHistory,
-      canRegenerateStepInsight,
-      regenerateStepInsight,
+      requestGoalInsightFromUser,
+      requestStepInsightWithAd,
+      showGoalAchievementInsightCta,
+      canRegenerateStepInsightWithAd,
     }),
     [
-      canRegenerateStepInsight,
+      canRegenerateStepInsightWithAd,
       errorMessage,
       goalStepCount,
       handleTrackingButtonPress,
@@ -299,8 +315,10 @@ export function StepTrackingProvider({
       isStartDisabled,
       isTracking,
       refreshStepInsightHistory,
-      regenerateStepInsight,
+      requestGoalInsightFromUser,
+      requestStepInsightWithAd,
       setGoalStepCount,
+      showGoalAchievementInsightCta,
       statusMessage,
       stepCount,
       stepInsightErrorMessage,

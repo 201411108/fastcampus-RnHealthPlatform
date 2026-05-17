@@ -27,10 +27,6 @@ export function isValidISODate(value: string): boolean {
   );
 }
 
-export function compareISODateDesc(left: string, right: string): number {
-  return right.localeCompare(left);
-}
-
 /** 로컬 달력 기준 해당 날짜가 속한 주의 월요일 00:00:00. */
 export function getMondayOfWeek(date: Date): Date {
   const local = new Date(date.getFullYear(), date.getMonth(), date.getDate());

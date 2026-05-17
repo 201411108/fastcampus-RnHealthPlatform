@@ -1,5 +1,3 @@
-export const healthPlatformTag = 'rn-health-platform';
-
 export type {FoodAnalysisResult, Nutrition, NutritionTotals} from './types/nutrition';
 export type {FoodRecord} from './types/record';
 export type {
@@ -18,7 +16,6 @@ export type {
 } from './types/healthReport';
 
 export {
-  compareISODateDesc,
   getMondayOfWeek,
   getWeekISODatesFromMonday,
   isValidISODate,

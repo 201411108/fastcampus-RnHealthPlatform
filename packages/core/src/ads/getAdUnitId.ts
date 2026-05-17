@@ -6,6 +6,8 @@ export function getAdUnitId(slot: AdUnitSlot): string {
   if (__DEV__) {
     switch (slot) {
       case 'aiCamera.adaptiveBanner':
+      case 'mainTabs.homeBanner':
+      case 'mainTabs.historyBanner':
       case 'pedometer.homeBanner':
         return TestIds.ADAPTIVE_BANNER;
       case 'aiCamera.interstitial':
@@ -24,6 +26,10 @@ export function getAdUnitId(slot: AdUnitSlot): string {
       return ids?.aiCamera.adaptiveBanner?.trim() || TestIds.ADAPTIVE_BANNER;
     case 'aiCamera.interstitial':
       return ids?.aiCamera.interstitial?.trim() || TestIds.INTERSTITIAL;
+    case 'mainTabs.homeBanner':
+      return ids?.mainTabs.homeBanner?.trim() || TestIds.ADAPTIVE_BANNER;
+    case 'mainTabs.historyBanner':
+      return ids?.mainTabs.historyBanner?.trim() || TestIds.ADAPTIVE_BANNER;
     case 'pedometer.homeBanner':
       return ids?.pedometer.homeBanner?.trim() || TestIds.ADAPTIVE_BANNER;
     case 'pedometer.goalInsightInterstitial':

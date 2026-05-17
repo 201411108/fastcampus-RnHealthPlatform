@@ -14,6 +14,12 @@ export function configureAdUnits(ids: AdUnitsProductionIds) {
     if (!ids.aiCamera.interstitial?.trim()) {
       missing.push('aiCamera.interstitial');
     }
+    if (!ids.mainTabs.homeBanner?.trim()) {
+      missing.push('mainTabs.homeBanner');
+    }
+    if (!ids.mainTabs.historyBanner?.trim()) {
+      missing.push('mainTabs.historyBanner');
+    }
     if (!ids.pedometer.homeBanner?.trim()) {
       missing.push('pedometer.homeBanner');
     }

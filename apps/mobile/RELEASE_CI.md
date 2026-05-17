@@ -1,6 +1,6 @@
 # 모바일 릴리스 CI/CD (TestFlight · Play internal)
 
-GitHub **Release**가 **published**될 때 [.github/workflows/mobile-release.yml](../.github/workflows/mobile-release.yml)이 실행된다.  
+GitHub **Release**가 **published**될 때 [.github/workflows/mobile-release.yml](../../../.github/workflows/mobile-release.yml)이 실행된다.  
 태그는 `vMAJOR.MINOR.PATCH`(예: `v1.4.0`) 형식이며, 앱 버전 `APP_VERSION`은 `v`를 뺀 값(예: `1.4.0`)이다. 빌드 번호 `BUILD_NUMBER`는 GitHub Actions의 `github.run_number`를 사용한다.
 
 ## 준비

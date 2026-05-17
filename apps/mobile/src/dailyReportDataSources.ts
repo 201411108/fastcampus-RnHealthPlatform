@@ -5,7 +5,8 @@ import {
   type FoodRecord,
   type StepDaySummary,
 } from '@rn-health/core';
-import type {DailyReportDataSources} from '@rn-health/feature-daily-report';
+import { getDailyStepSnapshotForDate } from '@rn-health/feature-pedometer';
+import type { DailyReportDataSources } from '@rn-health/feature-daily-report';
 
 const FOOD_RECORDS_STORAGE_KEY = '@food_records';
 const STEP_INSIGHT_HISTORY_STORAGE_KEY = '@stepInsight/history/v1';
@@ -38,7 +39,7 @@ function isStepSummaryCandidate(value: unknown) {
     return false;
   }
 
-  const item = value as Partial<StepDaySummary> & {createdAt?: unknown};
+  const item = value as Partial<StepDaySummary> & { createdAt?: unknown };
   return (
     typeof item.createdAt === 'string' &&
     typeof item.stepCount === 'number' &&
@@ -53,6 +54,25 @@ function isStepSummaryCandidate(value: unknown) {
 function toTime(value: string) {
   const timestamp = Date.parse(value);
   return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function mergeStepSummaries(
+  fromInsight: StepDaySummary | null,
+  fromSnapshot: StepDaySummary | null,
+): StepDaySummary | null {
+  if (!fromInsight && !fromSnapshot) {
+    return null;
+  }
+  if (!fromInsight) {
+    return fromSnapshot;
+  }
+  if (!fromSnapshot) {
+    return fromInsight;
+  }
+  if (fromInsight.stepCount >= fromSnapshot.stepCount) {
+    return fromInsight;
+  }
+  return fromSnapshot;
 }
 
 async function loadFoodRecords(date: string): Promise<FoodRecord[]> {
@@ -75,8 +95,12 @@ async function loadFoodRecords(date: string): Promise<FoodRecord[]> {
   }
 }
 
-async function loadStepSummary(date: string): Promise<StepDaySummary | null> {
-  const rawHistory = await AsyncStorage.getItem(STEP_INSIGHT_HISTORY_STORAGE_KEY);
+async function loadStepSummaryFromInsightHistory(
+  date: string,
+): Promise<StepDaySummary | null> {
+  const rawHistory = await AsyncStorage.getItem(
+    STEP_INSIGHT_HISTORY_STORAGE_KEY,
+  );
   if (!rawHistory) {
     return null;
   }
@@ -90,7 +114,9 @@ async function loadStepSummary(date: string): Promise<StepDaySummary | null> {
     const latestItem = parsed
       .filter(isStepSummaryCandidate)
       .filter(item => isSameISODate(item.createdAt, date))
-      .sort((left, right) => toTime(right.createdAt) - toTime(left.createdAt))[0];
+      .sort(
+        (left, right) => toTime(right.createdAt) - toTime(left.createdAt),
+      )[0];
 
     if (!latestItem) {
       return null;
@@ -110,8 +136,26 @@ async function loadStepSummary(date: string): Promise<StepDaySummary | null> {
   }
 }
 
+async function loadStepSummary(date: string): Promise<StepDaySummary | null> {
+  const [fromInsight, fromSnapshot] = await Promise.all([
+    loadStepSummaryFromInsightHistory(date),
+    getDailyStepSnapshotForDate(date),
+  ]);
+  return mergeStepSummaries(fromInsight, fromSnapshot);
+}
+
+async function canGenerateReport(date: string): Promise<boolean> {
+  const summary = await loadStepSummary(date);
+  if (!summary) {
+    return false;
+  }
+  return (
+    summary.goalStepCount > 0 && summary.stepCount >= summary.goalStepCount
+  );
+}
+
 export const dailyReportDataSources: DailyReportDataSources = {
   loadFoodRecords,
   loadStepSummary,
-  canGenerateReport: () => true,
+  canGenerateReport,
 };

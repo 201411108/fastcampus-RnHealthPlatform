@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import {
   AccessibilityInfo,
@@ -54,7 +54,9 @@ export function HomePedometerCard() {
   const [goalInput, setGoalInput] = useState('');
   const [goalSavedFlash, setGoalSavedFlash] = useState(false);
   const [lastSavedGoal, setLastSavedGoal] = useState<number | null>(null);
-  const saveFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const saveButtonScale = useSharedValue(1);
   const {
     goalStepCount,
@@ -65,6 +67,10 @@ export function HomePedometerCard() {
     isProcessing,
     isGeneratingStepInsight,
     stepInsightResult,
+    stepInsightErrorMessage,
+    showGoalAchievementInsightCta,
+    canRegenerateStepInsightWithAd,
+    requestGoalInsightFromUser,
     setGoalStepCount,
     handleTrackingButtonPress,
   } = useStepTrackingContext();
@@ -89,7 +95,7 @@ export function HomePedometerCard() {
   );
 
   useEffect(() => {
-    trackingProgress.value = withTiming(isTracking ? 1 : 0, {duration: 220});
+    trackingProgress.value = withTiming(isTracking ? 1 : 0, { duration: 220 });
   }, [isTracking, trackingProgress]);
 
   const statusPillStyle = useAnimatedStyle(() => {
@@ -103,7 +109,7 @@ export function HomePedometerCard() {
       [0, 1],
       ['#e2e8f0', appColors.primarySoft],
     );
-    return {backgroundColor: bg, borderColor: border};
+    return { backgroundColor: bg, borderColor: border };
   });
 
   const statusPillLabelStyle = useAnimatedStyle(() => {
@@ -112,13 +118,16 @@ export function HomePedometerCard() {
       [0, 1],
       ['#64748b', appColors.primary],
     );
-    return {color};
+    return { color };
   });
 
   const handleSaveGoal = useCallback(() => {
     const nextGoalStepCount = Number(goalInput.replace(/[^0-9]/g, ''));
     if (!Number.isFinite(nextGoalStepCount) || nextGoalStepCount <= 0) {
-      Alert.alert('목표 걸음수', '1 이상의 숫자로 목표 걸음수를 입력해 주세요.');
+      Alert.alert(
+        '목표 걸음수',
+        '1 이상의 숫자로 목표 걸음수를 입력해 주세요.',
+      );
       return;
     }
 
@@ -128,8 +137,8 @@ export function HomePedometerCard() {
     Keyboard.dismiss();
 
     saveButtonScale.value = withSequence(
-      withTiming(1.08, {duration: 140}),
-      withTiming(1, {duration: 200}),
+      withTiming(1.08, { duration: 140 }),
+      withTiming(1, { duration: 200 }),
     );
 
     if (saveFlashTimeoutRef.current) {
@@ -145,12 +154,14 @@ export function HomePedometerCard() {
       () => {},
     );
 
-    const message = `목표 걸음수 ${nextGoalStepCount.toLocaleString('ko-KR')}보로 저장했어요.`;
+    const message = `목표 걸음수 ${nextGoalStepCount.toLocaleString(
+      'ko-KR',
+    )}보로 저장했어요.`;
     AccessibilityInfo.announceForAccessibility(message);
   }, [goalInput, saveButtonScale, setGoalStepCount]);
 
   const saveButtonAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{scale: saveButtonScale.value}],
+    transform: [{ scale: saveButtonScale.value }],
   }));
 
   useEffect(() => {
@@ -171,7 +182,9 @@ export function HomePedometerCard() {
         <View
           accessible={true}
           accessibilityRole="text"
-          accessibilityLabel={`현재 걸음 수 ${stepCount}보, 걸음 추적 ${isTracking ? '중' : '대기'}`}
+          accessibilityLabel={`현재 걸음 수 ${stepCount}보, 걸음 추적 ${
+            isTracking ? '중' : '대기'
+          }`}
         >
           <Text style={styles.metricLabel}>현재 걸음 수</Text>
           <Text style={styles.metricValue} importantForAccessibility="no">
@@ -183,21 +196,25 @@ export function HomePedometerCard() {
           accessibilityElementsHidden={true}
           importantForAccessibility="no"
         >
-          <Animated.Text style={[styles.statusPillLabelBase, statusPillLabelStyle]}>
+          <Animated.Text
+            style={[styles.statusPillLabelBase, statusPillLabelStyle]}
+          >
             {isTracking ? '추적 중' : '대기'}
           </Animated.Text>
         </Animated.View>
       </View>
 
       <View style={styles.ringSection}>
-        <StepProgressRing
-          stepCount={stepCount}
-          goalStepCount={goalStepCount}
-        />
+        <StepProgressRing stepCount={stepCount} goalStepCount={goalStepCount} />
       </View>
 
       <Text style={styles.helperText}>{statusMessage}</Text>
-      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+      {errorMessage ? (
+        <Text style={styles.errorText}>{errorMessage}</Text>
+      ) : null}
+      {stepInsightErrorMessage ? (
+        <Text style={styles.insightErrorText}>{stepInsightErrorMessage}</Text>
+      ) : null}
       <View style={styles.goalRow}>
         <TextInput
           value={goalInput}
@@ -212,15 +229,17 @@ export function HomePedometerCard() {
         <Animated.View style={saveButtonAnimatedStyle}>
           <Pressable
             onPress={handleSaveGoal}
-            style={({pressed}) => [
+            style={({ pressed }) => [
               styles.secondaryButton,
               goalSavedFlash ? styles.secondaryButtonSaved : null,
               pressed && styles.secondaryButtonPressed,
             ]}
             accessibilityRole="button"
-            accessibilityState={{busy: goalSavedFlash}}
+            accessibilityState={{ busy: goalSavedFlash }}
             accessibilityLabel={
-              goalSavedFlash ? '목표 걸음수가 저장되었습니다' : '목표 걸음수 저장'
+              goalSavedFlash
+                ? '목표 걸음수가 저장되었습니다'
+                : '목표 걸음수 저장'
             }
           >
             <Text
@@ -246,16 +265,59 @@ export function HomePedometerCard() {
       <Pressable
         onPress={handlePressTracking}
         disabled={isProcessing}
-        style={[
-          styles.primaryButton,
-          isProcessing && styles.disabledButton,
-        ]}
+        style={[styles.primaryButton, isProcessing && styles.disabledButton]}
         accessibilityRole="button"
       >
         <Text style={styles.primaryButtonLabel}>
           {isTracking ? '추적 중지' : '걸음 추적 시작'}
         </Text>
       </Pressable>
+
+      {showGoalAchievementInsightCta ? (
+        <View style={styles.goalInsightCta}>
+          <Text style={styles.goalInsightCtaTitle}>목표를 달성했어요</Text>
+          <Text style={styles.goalInsightCtaBody}>
+            아래 버튼을 누르면 전면 광고가 먼저 표시되고, 광고 후에 AI 걸음 인사이트가
+            생성됩니다.
+          </Text>
+          <Pressable
+            onPress={requestGoalInsightFromUser}
+            disabled={isGeneratingStepInsight}
+            style={({ pressed }) => [
+              styles.goalInsightCtaButton,
+              isGeneratingStepInsight && styles.disabledButton,
+              pressed && !isGeneratingStepInsight && styles.goalInsightCtaButtonPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="전면 광고 확인 후 AI 걸음 인사이트 생성"
+          >
+            <Text style={styles.goalInsightCtaButtonLabel}>
+              전면 광고 확인 후 인사이트 받기
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {canRegenerateStepInsightWithAd ? (
+        <View style={styles.regenerateBlock}>
+          <Text style={styles.regenerateHint}>
+            재생성 시에도 전면 광고가 표시된 뒤 인사이트가 다시 만들어집니다.
+          </Text>
+          <Pressable
+            onPress={requestGoalInsightFromUser}
+            disabled={isGeneratingStepInsight}
+            style={({ pressed }) => [
+              styles.regenerateButton,
+              isGeneratingStepInsight && styles.disabledButton,
+              pressed && !isGeneratingStepInsight && styles.regenerateButtonPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="전면 광고 후 AI 걸음 인사이트 재생성"
+          >
+            <Text style={styles.regenerateButtonLabel}>광고 후 인사이트 재생성</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {isGeneratingStepInsight ? (
         <Animated.View
@@ -333,6 +395,70 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: appColors.danger,
+  },
+  insightErrorText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: appColors.danger,
+  },
+  goalInsightCta: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: appColors.primarySoft,
+    backgroundColor: appColors.surfaceMuted,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  goalInsightCtaTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: appColors.primary,
+  },
+  goalInsightCtaBody: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: appColors.textMuted,
+  },
+  goalInsightCtaButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: appColors.primary,
+    paddingVertical: spacing.md,
+  },
+  goalInsightCtaButtonPressed: {
+    opacity: 0.92,
+  },
+  goalInsightCtaButtonLabel: {
+    color: appColors.inverseText,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  regenerateBlock: {
+    gap: spacing.sm,
+  },
+  regenerateHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: appColors.textSubtle,
+  },
+  regenerateButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: appColors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  regenerateButtonPressed: {
+    opacity: 0.92,
+  },
+  regenerateButtonLabel: {
+    color: appColors.inverseText,
+    fontSize: 15,
+    fontWeight: '700',
   },
   goalRow: {
     flexDirection: 'row',

@@ -46,6 +46,14 @@ export function DailyReportDataSummaryCard({
         목표 대비 {sourceState.progressPercent.toFixed(1)}% 기준입니다.
       </Text>
 
+      {!sourceState.hasMetStepGoal ? (
+        <View style={styles.goalGateBadge}>
+          <Text style={styles.goalGateText}>
+            오늘 목표 걸음수를 달성하면 Daily Report를 생성할 수 있어요.
+          </Text>
+        </View>
+      ) : null}
+
       {sourceState.isPartial ? (
         <View style={styles.noticeBadge}>
           <Text style={styles.noticeText}>
@@ -55,9 +63,14 @@ export function DailyReportDataSummaryCard({
       ) : null}
 
       <Pressable
-        style={[styles.generateButton, isGenerating ? styles.disabledButton : null]}
+        style={[
+          styles.generateButton,
+          isGenerating || !sourceState.hasMetStepGoal
+            ? styles.disabledButton
+            : null,
+        ]}
         onPress={onGenerate}
-        disabled={isGenerating}
+        disabled={isGenerating || !sourceState.hasMetStepGoal}
         accessibilityRole="button"
       >
         <Text style={styles.generateButtonLabel}>
@@ -115,6 +128,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceMuted,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
+  },
+  goalGateBadge: {
+    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  goalGateText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
   },
   noticeText: {
     ...typography.caption,

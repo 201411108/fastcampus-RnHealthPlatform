@@ -68,6 +68,9 @@ export async function buildDailyReportInput({
   const stepSummary = normalizeStepSummary(date, rawStepSummary);
   const hasFoodRecords = foodRecords.length > 0;
   const hasStepRecords = stepSummary.stepCount > 0;
+  const hasMetStepGoal =
+    stepSummary.goalStepCount > 0 &&
+    stepSummary.stepCount >= stepSummary.goalStepCount;
 
   return {
     input: {
@@ -83,6 +86,7 @@ export async function buildDailyReportInput({
       stepCount: stepSummary.stepCount,
       goalStepCount: stepSummary.goalStepCount,
       progressPercent: stepSummary.progressPercent,
+      hasMetStepGoal,
     },
   };
 }

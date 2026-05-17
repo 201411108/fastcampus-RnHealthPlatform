@@ -62,17 +62,20 @@ export function useDailyReport({
 
   const generateReport = useCallback(async () => {
     try {
-      setStatus('generating');
       setErrorMessage('');
       setIsFallback(false);
 
       const canGenerate = dataSources.canGenerateReport
-        ? await dataSources.canGenerateReport()
+        ? await dataSources.canGenerateReport(date)
         : true;
       if (!canGenerate) {
-        setStatus('locked');
+        setErrorMessage(
+          '오늘 목표 걸음수를 달성한 뒤에 리포트를 생성할 수 있어요.',
+        );
         return;
       }
+
+      setStatus('generating');
 
       let input = reportInput;
       if (!input) {

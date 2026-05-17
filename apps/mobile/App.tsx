@@ -40,6 +40,7 @@ import {
   KeyboardAwareScrollView,
   KeyboardProvider,
 } from 'react-native-keyboard-controller';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {check, PERMISSIONS, request, RESULTS} from 'react-native-permissions';
 import {
   SafeAreaProvider,
@@ -49,6 +50,7 @@ import {
 import {productionAdUnits} from './src/adsUnitConfig';
 import {HomePedometerCard} from './src/components/HomePedometerCard';
 import {dailyReportDataSources} from './src/dailyReportDataSources';
+import {weeklyReportDataSources} from './src/weeklyReportDataSources';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -352,7 +354,10 @@ function MainTabs({stepSensor, onOpenCamera}: MainTabsProps) {
                 {paddingBottom: contentBottomPadding},
               ]}
             >
-              <DailyReportNavigator dataSources={dailyReportDataSources} />
+              <DailyReportNavigator
+                dataSources={dailyReportDataSources}
+                weeklyDataSources={weeklyReportDataSources}
+              />
             </View>
           )}
         </Tab.Screen>
@@ -400,26 +405,28 @@ export default function App() {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <KeyboardProvider>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <NavigationContainer theme={DefaultTheme}>
-          <Stack.Navigator>
-            <Stack.Screen
-              name="MainTabs"
-              component={MainTabsScreen}
-              options={{headerShown: false}}
-            />
-            <Stack.Screen
-              name="CameraCapture"
-              options={{headerShown: false, animation: 'slide_from_bottom'}}
-            >
-              {props => <CameraCaptureScreen navigation={props.navigation} />}
-            </Stack.Screen>
-          </Stack.Navigator>
-        </NavigationContainer>
-      </KeyboardProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={styles.gestureRoot}>
+      <SafeAreaProvider>
+        <KeyboardProvider>
+          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+          <NavigationContainer theme={DefaultTheme}>
+            <Stack.Navigator>
+              <Stack.Screen
+                name="MainTabs"
+                component={MainTabsScreen}
+                options={{headerShown: false}}
+              />
+              <Stack.Screen
+                name="CameraCapture"
+                options={{headerShown: false, animation: 'slide_from_bottom'}}
+              >
+                {props => <CameraCaptureScreen navigation={props.navigation} />}
+              </Stack.Screen>
+            </Stack.Navigator>
+          </NavigationContainer>
+        </KeyboardProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -449,6 +456,9 @@ const spacing = {
 const tabBarBaseHeight = 56;
 
 const styles = StyleSheet.create({
+  gestureRoot: {
+    flex: 1,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: appColors.background,

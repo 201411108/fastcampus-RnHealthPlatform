@@ -1,4 +1,5 @@
 import {StyleSheet, Text, View} from 'react-native';
+import Animated, {FadeInDown} from 'react-native-reanimated';
 import type {DailyHealthReport} from '@rn-health/core';
 import type {DailyReportSourceState} from '../types/dailyReport';
 import {cardStyle, colors, radius, spacing, typography} from '../theme/tokens';
@@ -13,13 +14,15 @@ function formatNumber(value: number) {
   return Math.round(value).toLocaleString('ko-KR');
 }
 
+const RESULT_CARD_ENTERING = FadeInDown.duration(280);
+
 export function DailyReportResultCard({
   report,
   sourceState,
   isFallback,
 }: DailyReportResultCardProps) {
   return (
-    <View style={styles.card}>
+    <Animated.View style={styles.card} entering={RESULT_CARD_ENTERING}>
       {isFallback ? (
         <View style={styles.noticeBadge}>
           <Text style={styles.noticeText}>기본 리포트로 표시 중</Text>
@@ -71,7 +74,7 @@ export function DailyReportResultCard({
           </Text>
         ))}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

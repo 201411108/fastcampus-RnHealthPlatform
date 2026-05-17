@@ -52,6 +52,7 @@ export function DailyReportHomeScreen({
 
       {isLoading ? (
         <DailyReportStateView
+          key={isGenerating ? 'daily-report-generating' : 'daily-report-loading'}
           title={isGenerating ? '리포트를 생성하고 있어요' : '데이터를 확인하고 있어요'}
           description={
             isGenerating
@@ -100,6 +101,14 @@ export function DailyReportHomeScreen({
       ) : null}
 
       <Pressable
+        style={styles.weeklyNavButton}
+        onPress={() => navigation.navigate('WeeklyReport')}
+        accessibilityRole="button"
+      >
+        <Text style={styles.weeklyNavLabel}>주간 요약 (영양·걸음)</Text>
+      </Pressable>
+
+      <Pressable
         style={styles.historyButton}
         onPress={() => navigation.navigate('DailyReportHistory')}
         accessibilityRole="button"
@@ -125,6 +134,21 @@ const styles = StyleSheet.create({
   },
   description: {
     ...typography.body,
+  },
+  weeklyNavButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface,
+  },
+  weeklyNavLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
   },
   historyButton: {
     ...buttonStyle,

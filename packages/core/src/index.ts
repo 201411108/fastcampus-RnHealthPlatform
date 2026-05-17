@@ -19,7 +19,10 @@ export type {
 
 export {
   compareISODateDesc,
+  getMondayOfWeek,
+  getWeekISODatesFromMonday,
   isValidISODate,
+  shiftWeekMondayISO,
   toISODate,
 } from './utils/date';
 export {

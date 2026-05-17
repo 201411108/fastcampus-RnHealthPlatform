@@ -1,4 +1,5 @@
 import {Pressable, StyleSheet, Text, View} from 'react-native';
+import Animated, {FadeIn} from 'react-native-reanimated';
 import type {DailyReportSourceState} from '../types/dailyReport';
 import {buttonStyle, cardStyle, colors, spacing, typography} from '../theme/tokens';
 
@@ -13,6 +14,8 @@ function formatNumber(value: number) {
   return Math.round(value).toLocaleString('ko-KR');
 }
 
+const SUMMARY_CARD_ENTERING = FadeIn.duration(240);
+
 export function DailyReportDataSummaryCard({
   sourceState,
   isGenerating,
@@ -20,7 +23,7 @@ export function DailyReportDataSummaryCard({
   onRefresh,
 }: DailyReportDataSummaryCardProps) {
   return (
-    <View style={styles.card}>
+    <Animated.View style={styles.card} entering={SUMMARY_CARD_ENTERING}>
       <View style={styles.header}>
         <Text style={styles.title}>리포트 생성 전 데이터 확인</Text>
         <Text style={styles.description}>
@@ -69,7 +72,7 @@ export function DailyReportDataSummaryCard({
       >
         <Text style={styles.refreshButtonLabel}>데이터 다시 확인</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 

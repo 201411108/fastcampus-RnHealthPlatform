@@ -6,3 +6,7 @@ export type {
   DailyReportHistoryItem,
   DailyReportSourceState,
 } from './types/dailyReport';
+export type {
+  WeeklyReportDataSources,
+  WeeklyReportDayPoint,
+} from './types/weeklyReport';

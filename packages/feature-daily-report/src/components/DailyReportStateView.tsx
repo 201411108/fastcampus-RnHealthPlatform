@@ -1,5 +1,8 @@
-import {ActivityIndicator, Pressable, StyleSheet, Text, View} from 'react-native';
+import {ActivityIndicator, Pressable, StyleSheet, Text} from 'react-native';
+import Animated, {FadeIn} from 'react-native-reanimated';
 import {buttonStyle, colors, spacing, typography} from '../theme/tokens';
+
+const STATE_VIEW_LOADING_ENTERING = FadeIn.duration(240);
 
 type DailyReportStateViewProps = {
   title: string;
@@ -17,7 +20,10 @@ export function DailyReportStateView({
   onAction,
 }: DailyReportStateViewProps) {
   return (
-    <View style={styles.root}>
+    <Animated.View
+      style={styles.root}
+      entering={isLoading ? STATE_VIEW_LOADING_ENTERING : undefined}
+    >
       {isLoading ? <ActivityIndicator size="large" color={colors.primary} /> : null}
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
@@ -30,7 +36,7 @@ export function DailyReportStateView({
           <Text style={styles.actionLabel}>{actionLabel}</Text>
         </Pressable>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 

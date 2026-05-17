@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {
   Canvas,
   Group,
@@ -7,7 +7,13 @@ import {
   type SkPath,
 } from '@shopify/react-native-skia';
 import {StyleSheet, Text, View} from 'react-native';
-import {useSharedValue, withTiming} from 'react-native-reanimated';
+import {
+  runOnJS,
+  useAnimatedReaction,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import {STEP_COUNT_DISPLAY_DURATION_MS} from '../constants/stepCountAnimation';
 
 type StepProgressRingProps = {
   stepCount: number;
@@ -25,6 +31,8 @@ const TRACK_COLOR = '#e5e7eb';
 const BASE_PROGRESS_COLOR = '#2563eb';
 const OVER_PROGRESS_COLOR = '#1d4ed8';
 
+const timingConfig = {duration: STEP_COUNT_DISPLAY_DURATION_MS};
+
 function createCirclePath(radius: number): SkPath {
   const path = Skia.Path.Make();
   path.addCircle(RING_CENTER, RING_CENTER, radius);
@@ -37,14 +45,29 @@ export default function StepProgressRing({
 }: StepProgressRingProps) {
   const baseProgressValue = useSharedValue(0);
   const overProgressValue = useSharedValue(0);
+  const animatedStep = useSharedValue(stepCount);
+  const [displayStepLabel, setDisplayStepLabel] = useState(String(stepCount));
 
   const baseRingPathRef = useRef<SkPath>(createCirclePath(BASE_RADIUS));
   const overRingPathRef = useRef<SkPath>(createCirclePath(OVER_RADIUS));
 
   useEffect(() => {
+    animatedStep.value = withTiming(stepCount, timingConfig);
+  }, [animatedStep, stepCount]);
+
+  useAnimatedReaction(
+    () => Math.round(animatedStep.value),
+    (current, previous) => {
+      if (current !== previous) {
+        runOnJS(setDisplayStepLabel)(String(current));
+      }
+    },
+  );
+
+  useEffect(() => {
     if (!goalStepCount || goalStepCount <= 0) {
-      baseProgressValue.value = withTiming(0, {duration: 300});
-      overProgressValue.value = withTiming(0, {duration: 300});
+      baseProgressValue.value = withTiming(0, timingConfig);
+      overProgressValue.value = withTiming(0, timingConfig);
       return;
     }
 
@@ -52,8 +75,8 @@ export default function StepProgressRing({
     const nextBaseProgress = Math.min(rawProgress, 1);
     const nextOverProgress = Math.min(Math.max(rawProgress - 1, 0), 1);
 
-    baseProgressValue.value = withTiming(nextBaseProgress, {duration: 420});
-    overProgressValue.value = withTiming(nextOverProgress, {duration: 420});
+    baseProgressValue.value = withTiming(nextBaseProgress, timingConfig);
+    overProgressValue.value = withTiming(nextOverProgress, timingConfig);
   }, [baseProgressValue, goalStepCount, overProgressValue, stepCount]);
 
   return (
@@ -97,8 +120,10 @@ export default function StepProgressRing({
           />
         </Group>
       </Canvas>
-      <View style={styles.centerLabel}>
-        <Text style={styles.stepCount}>{stepCount}보</Text>
+      <View style={styles.centerLabel} accessibilityElementsHidden>
+        <Text style={styles.stepCount} importantForAccessibility="no">
+          {displayStepLabel}보
+        </Text>
       </View>
     </View>
   );

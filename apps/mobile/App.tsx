@@ -13,7 +13,6 @@ import {
   PedometerHistoryScreen,
   PedometerSettingsScreen,
   StepTrackingProvider,
-  useStepTrackingContext,
   type StepSensorPort,
 } from '@rn-health/feature-pedometer';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -27,19 +26,20 @@ import {
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Platform,
   Pressable,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   useColorScheme,
   View,
 } from 'react-native';
+import {
+  KeyboardAwareScrollView,
+  KeyboardProvider,
+} from 'react-native-keyboard-controller';
 import {check, PERMISSIONS, request, RESULTS} from 'react-native-permissions';
 import {
   SafeAreaProvider,
@@ -47,6 +47,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import {productionAdUnits} from './src/adsUnitConfig';
+import {HomePedometerCard} from './src/components/HomePedometerCard';
 import {dailyReportDataSources} from './src/dailyReportDataSources';
 
 type RootStackParamList = {
@@ -87,19 +88,6 @@ function HomeDashboardScreen({
   onOpenCamera,
   bottomPadding,
 }: HomeDashboardScreenProps) {
-  const [goalInput, setGoalInput] = useState('');
-  const {
-    goalStepCount,
-    stepCount,
-    statusMessage,
-    errorMessage,
-    isTracking,
-    isProcessing,
-    isGeneratingStepInsight,
-    stepInsightResult,
-    setGoalStepCount,
-    handleTrackingButtonPress,
-  } = useStepTrackingContext();
   const {records, isLoading, refreshRecords} = useRecords();
 
   useFocusEffect(
@@ -108,28 +96,16 @@ function HomeDashboardScreen({
     }, [refreshRecords]),
   );
 
-  const handleSaveGoal = useCallback(() => {
-    const nextGoalStepCount = Number(goalInput.replace(/[^0-9]/g, ''));
-    if (!Number.isFinite(nextGoalStepCount) || nextGoalStepCount <= 0) {
-      Alert.alert('목표 걸음수', '1 이상의 숫자로 목표 걸음수를 입력해 주세요.');
-      return;
-    }
-
-    setGoalStepCount(nextGoalStepCount);
-    setGoalInput(String(nextGoalStepCount));
-  }, [goalInput, setGoalStepCount]);
-
-  const handlePressTracking = useCallback(() => {
-    handleTrackingButtonPress().catch(() => {});
-  }, [handleTrackingButtonPress]);
-
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView
+      <KeyboardAwareScrollView
+        style={styles.homeScroll}
         contentContainerStyle={[
           styles.homeContent,
           {paddingBottom: bottomPadding + spacing.xl},
         ]}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={spacing.md}
       >
         <View style={styles.heroCard}>
           <Text style={styles.kicker}>AI 헬스 플랫폼</Text>
@@ -142,69 +118,7 @@ function HomeDashboardScreen({
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>만보기</Text>
-          <View style={styles.card}>
-            <View style={styles.metricRow}>
-              <View>
-                <Text style={styles.metricLabel}>현재 걸음 수</Text>
-                <Text style={styles.metricValue}>{stepCount}보</Text>
-              </View>
-              <View style={styles.statusPill}>
-                <Text style={styles.statusPillLabel}>
-                  {isTracking ? '추적 중' : '대기'}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.helperText}>{statusMessage}</Text>
-            {errorMessage ? (
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            ) : null}
-            <View style={styles.goalRow}>
-              <TextInput
-                value={goalInput}
-                onChangeText={setGoalInput}
-                placeholder={
-                  goalStepCount ? `${goalStepCount}보` : '목표 걸음수 입력'
-                }
-                keyboardType="number-pad"
-                style={styles.goalInput}
-                accessibilityLabel="목표 걸음수 입력"
-              />
-              <Pressable
-                onPress={handleSaveGoal}
-                style={styles.secondaryButton}
-                accessibilityRole="button"
-              >
-                <Text style={styles.secondaryButtonLabel}>저장</Text>
-              </Pressable>
-            </View>
-            <Pressable
-              onPress={handlePressTracking}
-              disabled={isProcessing}
-              style={[
-                styles.primaryButton,
-                isProcessing && styles.disabledButton,
-              ]}
-              accessibilityRole="button"
-            >
-              <Text style={styles.primaryButtonLabel}>
-                {isTracking ? '추적 중지' : '걸음 추적 시작'}
-              </Text>
-            </Pressable>
-            {isGeneratingStepInsight ? (
-              <View style={styles.inlineLoading}>
-                <ActivityIndicator size="small" color={appColors.primary} />
-                <Text style={styles.helperText}>
-                  만보기 리포트를 생성하고 있어요.
-                </Text>
-              </View>
-            ) : null}
-            {stepInsightResult.summary ? (
-              <View style={styles.insightBox}>
-                <Text style={styles.insightTitle}>최근 만보기 리포트</Text>
-                <Text style={styles.helperText}>{stepInsightResult.summary}</Text>
-              </View>
-            ) : null}
-          </View>
+          <HomePedometerCard />
         </View>
 
         <View style={styles.section}>
@@ -230,7 +144,7 @@ function HomeDashboardScreen({
             </Pressable>
           </View>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }
@@ -487,22 +401,24 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NavigationContainer theme={DefaultTheme}>
-        <Stack.Navigator>
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabsScreen}
-            options={{headerShown: false}}
-          />
-          <Stack.Screen
-            name="CameraCapture"
-            options={{headerShown: false, animation: 'slide_from_bottom'}}
-          >
-            {props => <CameraCaptureScreen navigation={props.navigation} />}
-          </Stack.Screen>
-        </Stack.Navigator>
-      </NavigationContainer>
+      <KeyboardProvider>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <NavigationContainer theme={DefaultTheme}>
+          <Stack.Navigator>
+            <Stack.Screen
+              name="MainTabs"
+              component={MainTabsScreen}
+              options={{headerShown: false}}
+            />
+            <Stack.Screen
+              name="CameraCapture"
+              options={{headerShown: false, animation: 'slide_from_bottom'}}
+            >
+              {props => <CameraCaptureScreen navigation={props.navigation} />}
+            </Stack.Screen>
+          </Stack.Navigator>
+        </NavigationContainer>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }
@@ -536,6 +452,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: appColors.background,
+  },
+  homeScroll: {
+    flex: 1,
   },
   homeContent: {
     flexGrow: 1,
@@ -594,29 +513,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
-  metricLabel: {
-    fontSize: 13,
-    color: appColors.textSubtle,
-  },
-  metricValue: {
-    marginTop: spacing.xs,
-    fontSize: 32,
-    fontWeight: '800',
-    color: appColors.text,
-  },
   metricCompact: {
     fontSize: 16,
-    fontWeight: '700',
-    color: appColors.primary,
-  },
-  statusPill: {
-    borderRadius: 999,
-    backgroundColor: appColors.primarySoft,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  statusPillLabel: {
-    fontSize: 13,
     fontWeight: '700',
     color: appColors.primary,
   },
@@ -629,21 +527,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: appColors.danger,
-  },
-  goalRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  goalInput: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: appColors.border,
-    backgroundColor: appColors.surface,
-    paddingHorizontal: spacing.md,
-    fontSize: 16,
-    color: appColors.text,
   },
   primaryButton: {
     minHeight: 48,
@@ -659,39 +542,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  secondaryButton: {
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: appColors.border,
-    backgroundColor: appColors.surface,
-    paddingHorizontal: spacing.lg,
-  },
-  secondaryButtonLabel: {
-    color: appColors.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
   disabledButton: {
     opacity: 0.5,
-  },
-  inlineLoading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  insightBox: {
-    borderRadius: 12,
-    backgroundColor: appColors.surfaceMuted,
-    padding: spacing.md,
-    gap: spacing.xs,
-  },
-  insightTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: appColors.primary,
   },
   historyRoot: {
     flex: 1,

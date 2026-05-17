@@ -87,6 +87,16 @@ def hasReleaseKeystoreSigning = releaseKeystorePropertiesFile.exists() &&
     releaseStoreFileRelative.length() > 0 &&
     rootProject.file(releaseStoreFileRelative).exists()
 
+// CI / fastlane: -PVERSION_NAME / -PVERSION_CODE (e.g. GitHub Actions run from release tag + run number)
+def versionNameOverride = project.findProperty("VERSION_NAME")
+def versionCodeOverride = project.findProperty("VERSION_CODE")
+def resolvedVersionName = (versionNameOverride != null && versionNameOverride.toString().trim().length() > 0)
+    ? versionNameOverride.toString().trim()
+    : "1.0"
+def resolvedVersionCode = (versionCodeOverride != null && versionCodeOverride.toString().trim().isInteger())
+    ? versionCodeOverride.toString().trim().toInteger()
+    : 1
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -97,8 +107,8 @@ android {
         applicationId "com.hankim.healthai"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode resolvedVersionCode
+        versionName resolvedVersionName
     }
     signingConfigs {
         debug {

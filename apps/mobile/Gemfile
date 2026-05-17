@@ -14,3 +14,6 @@ gem 'bigdecimal'
 gem 'logger'
 gem 'benchmark'
 gem 'mutex_m'
+
+# Release automation (TestFlight, Google Play internal testing)
+gem 'fastlane', '~> 2.227'

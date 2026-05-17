@@ -1,0 +1,123 @@
+# frozen_string_literal: true
+
+default_platform(:ios)
+
+def mobile_root
+  @mobile_root ||= File.expand_path("..", __dir__)
+end
+
+def repo_root
+  @repo_root ||= File.expand_path("../..", __dir__)
+end
+
+def assert_version_env!
+  if ENV["APP_VERSION"].to_s.strip.empty? || ENV["BUILD_NUMBER"].to_s.strip.empty?
+    UI.user_error!("APP_VERSION and BUILD_NUMBER must be set (e.g. from the release tag and CI run number).")
+  end
+end
+
+def testflight_changelog_text
+  path = ENV["TESTFLIGHT_CHANGELOG_PATH"]
+  if path && !path.to_s.strip.empty? && File.exist?(path)
+    File.read(path)
+  else
+    "Build #{ENV['BUILD_NUMBER']} — #{ENV['APP_VERSION']}"
+  end
+end
+
+desc "Yarn workspace lint + typecheck (no store upload)."
+lane :preflight do
+  Dir.chdir(repo_root) do
+    sh("yarn", "install")
+    sh("yarn", "mobile:lint")
+    sh("yarn", "mobile:typecheck")
+  end
+end
+
+platform :ios do
+  desc "Archive HealthAI and upload to TestFlight (no App Store customer release)."
+  lane :upload_testflight do
+    setup_ci(provider: "github") if is_ci
+
+    assert_version_env!
+
+    if ENV["APP_STORE_CONNECT_KEY_ID"].to_s.strip.empty?
+      UI.user_error!("APP_STORE_CONNECT_KEY_ID (and related API key env vars) must be set for CI uploads.")
+    end
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: ENV["APP_STORE_CONNECT_KEY_FILEPATH"],
+      in_house: false
+    )
+
+    increment_version_number(
+      version_number: ENV["APP_VERSION"],
+      xcodeproj: File.join(mobile_root, "ios/HealthAI.xcodeproj")
+    )
+
+    increment_build_number(
+      build_number: ENV["BUILD_NUMBER"],
+      xcodeproj: File.join(mobile_root, "ios/HealthAI.xcodeproj")
+    )
+
+    cocoapods(
+      podfile: File.join(mobile_root, "ios/Podfile")
+    )
+
+    build_app(
+      workspace: File.join(mobile_root, "ios/HealthAI.xcworkspace"),
+      scheme: "HealthAI",
+      configuration: "Release",
+      export_method: "app-store",
+      api_key: api_key
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: true,
+      changelog: testflight_changelog_text,
+      distribute_external: false
+    )
+  end
+end
+
+platform :android do
+  desc "bundleRelease (signed AAB) + upload to Play internal testing track only."
+  lane :internal do
+    assert_version_env!
+
+    if ENV["GOOGLE_PLAY_JSON_KEY_PATH"].to_s.strip.empty?
+      UI.user_error!("GOOGLE_PLAY_JSON_KEY_PATH must point to the Play service account JSON file.")
+    end
+
+    gradle(
+      task: "bundleRelease",
+      project_dir: File.join(mobile_root, "android"),
+      properties: {
+        "VERSION_NAME" => ENV["APP_VERSION"],
+        "VERSION_CODE" => ENV["BUILD_NUMBER"]
+      },
+      print_command: true
+    )
+
+    aab_path = File.join(mobile_root, "android/app/build/outputs/bundle/release/app-release.aab")
+    unless File.exist?(aab_path)
+      UI.user_error!("Expected AAB at #{aab_path} after bundleRelease.")
+    end
+
+    upload_to_play_store(
+      json_key: ENV["GOOGLE_PLAY_JSON_KEY_PATH"],
+      track: "internal",
+      package_name: "com.hankim.healthai",
+      aab: aab_path,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      release_status: "completed"
+    )
+  end
+end

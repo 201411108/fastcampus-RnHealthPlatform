@@ -45,6 +45,11 @@ coverage/
 **/Pods/
 **/vendor/bundle/
 
+# fastlane (로컬 실행 산출물; 시크릿은 저장소에 커밋하지 않음)
+apps/mobile/fastlane/report.xml
+apps/mobile/fastlane/Preview.html
+apps/mobile/fastlane/tmp/
+
 # Yarn Berry (keep releases; ignore local cache)
 .yarn/*
 !.yarn/patches

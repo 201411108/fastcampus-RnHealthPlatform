@@ -1,0 +1,2 @@
+# Non-secret app identifiers (Apple ID / API key live in GitHub Secrets / env).
+app_identifier("com.hankim.healthai")

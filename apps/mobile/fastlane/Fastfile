@@ -171,6 +171,9 @@ def sync_app_store_signing_for_ci!(api_key:)
   keychain = prepare_ci_keychain_for_signing!
   FileUtils.mkdir_p(ci_certs_output_path)
 
+  # setup_ci가 match readonly 모드를 켜지만, cert/sigh는 새 프로파일을 만들 수 있어야 한다.
+  ENV.delete("MATCH_READONLY")
+
   profile_name = import_ci_signing_from_secrets!(keychain: keychain)
 
   unless profile_name
@@ -190,8 +193,6 @@ def sync_app_store_signing_for_ci!(api_key:)
     sigh(
       api_key: api_key,
       app_identifier: IOS_BUNDLE_ID,
-      force: false,
-      readonly: false,
       fail_on_name_taken: false
     )
 

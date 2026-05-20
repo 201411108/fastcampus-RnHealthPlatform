@@ -1,9 +1,7 @@
 # Draft / publish GitHub Release → TestFlight (iOS) + Play internal testing (Android).
 # Trigger: release published only (no tag push / branch push uploads).
 #
-# Canonical entrypoint: repository root `.github/workflows/mobile-release.yml` (GitHub Actions가 실행하는 파일).
-# Mirror copy: `RnHealthPlatform/.github/workflows/mobile-release.yml`
-# 워크플로를 수정할 때는 위 두 파일을 항상 동일하게 유지한다.
+# Entrypoint: repository root `.github/workflows/mobile-release.yml`.
 
 name: Mobile release (TestFlight + Play internal)
 
@@ -22,9 +20,6 @@ jobs:
   preflight:
     name: Preflight
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: RnHealthPlatform
     outputs:
       app_version: ${{ steps.meta.outputs.app_version }}
     steps:
@@ -71,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mobile-release-notes
-          path: RnHealthPlatform/release-notes/release_notes.txt
+          path: release-notes/release_notes.txt
           if-no-files-found: error
           retention-days: 5
 
@@ -80,9 +75,6 @@ jobs:
     needs: preflight
     runs-on: macos-15
     environment: mobile-release
-    defaults:
-      run:
-        working-directory: RnHealthPlatform
     env:
       APP_VERSION: ${{ needs.preflight.outputs.app_version }}
       BUILD_NUMBER: ${{ github.run_number }}
@@ -94,7 +86,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: mobile-release-notes
-          path: RnHealthPlatform/release-notes
+          path: release-notes
 
       - name: Copy release notes for TestFlight changelog
         run: |
@@ -127,12 +119,12 @@ jobs:
         with:
           ruby-version: '3.3'
           bundler-cache: true
-          working-directory: RnHealthPlatform/apps/mobile
+          working-directory: apps/mobile
 
       - name: Restore iOS distribution cert cache
         uses: actions/cache@v4
         with:
-          path: RnHealthPlatform/apps/mobile/fastlane/certs
+          path: apps/mobile/fastlane/certs
           key: ios-distribution-certs-${{ runner.os }}-v1
           restore-keys: |
             ios-distribution-certs-${{ runner.os }}-v1
@@ -150,12 +142,12 @@ jobs:
           echo "APP_STORE_CONNECT_KEY_FILEPATH=${KEY_PATH}" >> "${GITHUB_ENV}"
 
       - name: Run fastlane (iOS)
-        working-directory: RnHealthPlatform/apps/mobile
+        working-directory: apps/mobile
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          TESTFLIGHT_CHANGELOG_PATH: ${{ github.workspace }}/RnHealthPlatform/apps/mobile/fastlane/tmp/release_notes.txt
+          TESTFLIGHT_CHANGELOG_PATH: ${{ github.workspace }}/apps/mobile/fastlane/tmp/release_notes.txt
         run: |
           set -euo pipefail
           mkdir -p fastlane/logs
@@ -167,8 +159,8 @@ jobs:
         with:
           name: ios-fastlane-logs
           path: |
-            RnHealthPlatform/apps/mobile/fastlane/logs
-            RnHealthPlatform/apps/mobile/fastlane/build/*.xcresult
+            apps/mobile/fastlane/logs
+            apps/mobile/fastlane/build/*.xcresult
           if-no-files-found: ignore
           retention-days: 14
 
@@ -177,9 +169,6 @@ jobs:
     needs: preflight
     runs-on: ubuntu-latest
     environment: mobile-release
-    defaults:
-      run:
-        working-directory: RnHealthPlatform
     env:
       APP_VERSION: ${{ needs.preflight.outputs.app_version }}
       BUILD_NUMBER: ${{ github.run_number }}
@@ -254,10 +243,10 @@ jobs:
         with:
           ruby-version: '3.3'
           bundler-cache: true
-          working-directory: RnHealthPlatform/apps/mobile
+          working-directory: apps/mobile
 
       - name: Run fastlane (Android)
-        working-directory: RnHealthPlatform/apps/mobile
+        working-directory: apps/mobile
         env:
           GOOGLE_PLAY_JSON_KEY_PATH: ${{ steps.play_json.outputs.json_path }}
         run: |
@@ -270,7 +259,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-app-release-aab
-          path: RnHealthPlatform/apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
+          path: apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: warn
           retention-days: 14
 
@@ -280,11 +269,11 @@ jobs:
         with:
           name: android-gradle-failure
           path: |
-            RnHealthPlatform/apps/mobile/fastlane/logs
-            RnHealthPlatform/apps/mobile/android/build/reports
-            RnHealthPlatform/apps/mobile/android/build/tmp
-            RnHealthPlatform/apps/mobile/android/app/build/outputs
-            RnHealthPlatform/apps/mobile/android/app/build/reports
-            RnHealthPlatform/apps/mobile/android/app/build/tmp
+            apps/mobile/fastlane/logs
+            apps/mobile/android/build/reports
+            apps/mobile/android/build/tmp
+            apps/mobile/android/app/build/outputs
+            apps/mobile/android/app/build/reports
+            apps/mobile/android/app/build/tmp
           if-no-files-found: ignore
           retention-days: 7

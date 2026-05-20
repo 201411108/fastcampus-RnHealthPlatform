@@ -74,6 +74,9 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// Google Play: Billing Library 6.0.1+ required when BILLING permission is declared
+def playBillingVersion = "8.3.0"
+
 def releaseKeystoreProperties = new Properties()
 def releaseKeystorePropertiesFile = rootProject.file("release-keystore.properties")
 if (releaseKeystorePropertiesFile.exists()) {
@@ -143,6 +146,7 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation("com.android.billingclient:billing:$playBillingVersion")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

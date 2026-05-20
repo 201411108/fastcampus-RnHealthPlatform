@@ -3544,6 +3544,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@revenuecat/purchases-js-hybrid-mappings@npm:18.6.0":
+  version: 18.6.0
+  resolution: "@revenuecat/purchases-js-hybrid-mappings@npm:18.6.0"
+  dependencies:
+    "@revenuecat/purchases-js": "npm:1.39.0"
+  checksum: 10/3dda8a272d09e3636f10610cb1c98f411833617f86c1c33efbd823e65790033e68a907f1a3f18316e86ae66d75705fa170d5b2c17f8f665f9d86cd9e7cd27646
+  languageName: node
+  linkType: hard
+
+"@revenuecat/purchases-js@npm:1.39.0":
+  version: 1.39.0
+  resolution: "@revenuecat/purchases-js@npm:1.39.0"
+  checksum: 10/bc12bcd5b1b88416f849e5997dca39ea4fae50ac9581f45fe8c5a4a82b5b1dbb61f7512c24ba83b5d0e46c0640ca01e887e24544cd15238d3ffd321d548ced26
+  languageName: node
+  linkType: hard
+
+"@revenuecat/purchases-typescript-internal@npm:18.6.0":
+  version: 18.6.0
+  resolution: "@revenuecat/purchases-typescript-internal@npm:18.6.0"
+  checksum: 10/359c271822881eb0f849dbebacd02dcf0ff9ebf78b008b18892fd64ddda9348b024e7382f03a68176349a4595759e4c074792b4abc73534b8a186f7cd5c83d65
+  languageName: node
+  linkType: hard
+
 "@rn-health/core@workspace:*, @rn-health/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@rn-health/core@workspace:packages/core"
@@ -8716,6 +8739,7 @@ __metadata:
     react-native-google-mobile-ads: "npm:^16.3.0"
     react-native-keyboard-controller: "npm:^1.21.7"
     react-native-permissions: "npm:^5.5.1"
+    react-native-purchases: "npm:^10.1.1"
     react-native-reanimated: "npm:^4.3.0"
     react-native-safe-area-context: "npm:^5.7.0"
     react-native-screens: "npm:^4.24.0"
@@ -9680,6 +9704,23 @@ __metadata:
     react-native-windows:
       optional: true
   checksum: 10/6cd84436d65b5ee810c64ac59e8407a536aa9eef8ae5d777ab32627325075d03006b9a533f001a999bd1e7bea6fa050a648957203d3b6a587cc58a4cf3678b5e
+  languageName: node
+  linkType: hard
+
+"react-native-purchases@npm:^10.1.1":
+  version: 10.1.1
+  resolution: "react-native-purchases@npm:10.1.1"
+  dependencies:
+    "@revenuecat/purchases-js-hybrid-mappings": "npm:18.6.0"
+    "@revenuecat/purchases-typescript-internal": "npm:18.6.0"
+  peerDependencies:
+    react: ">= 16.6.3"
+    react-native: ">= 0.73.0"
+    react-native-web: "*"
+  peerDependenciesMeta:
+    react-native-web:
+      optional: true
+  checksum: 10/81c9f8ad63872ac3ef1b469f00837e5848501744d867143e875ffdcd4f1b8170fe93ec7e9435a88fa9c039c9ab37fd46733fab71885b45bf76806ea5cfd47f18
   languageName: node
   linkType: hard
 

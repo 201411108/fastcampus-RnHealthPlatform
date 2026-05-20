@@ -30,5 +30,26 @@ subprojects { sub ->
             url(uri(asyncStorageLocalMaven))
         }
     }
+    // Lint PrivateApiDetector가 CI에서 Metaspace OOM까지 유발할 수 있음 (@shopify/react-native-skia)
+    if (sub.path.contains("react-native-skia")) {
+        sub.pluginManager.withPlugin("com.android.library") {
+            def androidExtension = sub.extensions.findByName("android")
+            if (androidExtension == null) {
+                return
+            }
+            androidExtension.lint {
+                disable("BlockedPrivateApi", "DiscouragedPrivateApi", "PrivateApi", "SoonBlockedPrivateApi")
+            }
+        }
+        sub.pluginManager.withPlugin("com.android.application") {
+            def androidExtension = sub.extensions.findByName("android")
+            if (androidExtension == null) {
+                return
+            }
+            androidExtension.lint {
+                disable("BlockedPrivateApi", "DiscouragedPrivateApi", "PrivateApi", "SoonBlockedPrivateApi")
+            }
+        }
+    }
 }
 apply plugin: "expo-root-project"

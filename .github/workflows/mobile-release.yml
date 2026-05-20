@@ -1,0 +1,290 @@
+# Draft / publish GitHub Release → TestFlight (iOS) + Play internal testing (Android).
+# Trigger: release published only (no tag push / branch push uploads).
+#
+# Canonical entrypoint: repository root `.github/workflows/mobile-release.yml` (GitHub Actions가 실행하는 파일).
+# Mirror copy: `RnHealthPlatform/.github/workflows/mobile-release.yml`
+# 워크플로를 수정할 때는 위 두 파일을 항상 동일하게 유지한다.
+
+name: Mobile release (TestFlight + Play internal)
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: mobile-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: RnHealthPlatform
+    outputs:
+      app_version: ${{ steps.meta.outputs.app_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - name: Install JS dependencies
+        run: yarn install
+
+      - name: Lint + typecheck
+        run: |
+          yarn mobile:lint
+          yarn mobile:typecheck
+
+      - name: Validate release tag and version
+        id: meta
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "${TAG_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must be vMAJOR.MINOR.PATCH (example: v1.4.0). Got: ${TAG_NAME}"
+            exit 1
+          fi
+          APP_VERSION="${TAG_NAME#v}"
+          echo "app_version=${APP_VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Save release notes for TestFlight
+        env:
+          BODY: ${{ github.event.release.body }}
+        run: |
+          mkdir -p release-notes
+          printf '%s\n' "${BODY}" > release-notes/release_notes.txt
+
+      - name: Upload release notes artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-release-notes
+          path: RnHealthPlatform/release-notes/release_notes.txt
+          if-no-files-found: error
+          retention-days: 5
+
+  ios_upload_testflight:
+    name: iOS TestFlight
+    needs: preflight
+    runs-on: macos-15
+    environment: mobile-release
+    defaults:
+      run:
+        working-directory: RnHealthPlatform
+    env:
+      APP_VERSION: ${{ needs.preflight.outputs.app_version }}
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: mobile-release-notes
+          path: RnHealthPlatform/release-notes
+
+      - name: Copy release notes for TestFlight changelog
+        run: |
+          mkdir -p apps/mobile/fastlane/tmp
+          cp release-notes/release_notes.txt apps/mobile/fastlane/tmp/release_notes.txt
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Verify Xcode version
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install JS dependencies
+        run: yarn install
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: RnHealthPlatform/apps/mobile
+
+      - name: Restore iOS distribution cert cache
+        uses: actions/cache@v4
+        with:
+          path: RnHealthPlatform/apps/mobile/fastlane/certs
+          key: ios-distribution-certs-${{ runner.os }}-v1
+          restore-keys: |
+            ios-distribution-certs-${{ runner.os }}-v1
+
+      - name: Prepare App Store Connect API key
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/private_keys"
+          KEY_PATH="${HOME}/private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          printf '%s\n' "${APP_STORE_CONNECT_KEY_P8}" > "${KEY_PATH}"
+          echo "APP_STORE_CONNECT_KEY_FILEPATH=${KEY_PATH}" >> "${GITHUB_ENV}"
+
+      - name: Run fastlane (iOS)
+        working-directory: RnHealthPlatform/apps/mobile
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TESTFLIGHT_CHANGELOG_PATH: ${{ github.workspace }}/RnHealthPlatform/apps/mobile/fastlane/tmp/release_notes.txt
+        run: |
+          set -euo pipefail
+          mkdir -p fastlane/logs
+          bundle exec fastlane ios upload_testflight 2>&1 | tee fastlane/logs/ios-fastlane.log
+
+      - name: Upload fastlane + gym logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-fastlane-logs
+          path: |
+            RnHealthPlatform/apps/mobile/fastlane/logs
+            RnHealthPlatform/apps/mobile/fastlane/build/*.xcresult
+          if-no-files-found: ignore
+          retention-days: 14
+
+  android_internal:
+    name: Android Play internal
+    needs: preflight
+    runs-on: ubuntu-latest
+    environment: mobile-release
+    defaults:
+      run:
+        working-directory: RnHealthPlatform
+    env:
+      APP_VERSION: ${{ needs.preflight.outputs.app_version }}
+      BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install JS dependencies
+        run: yarn install
+
+      - name: Restore google-services.json
+        env:
+          JSON_BODY: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: printf '%s' "${JSON_BODY}" > apps/mobile/android/app/google-services.json
+
+      - name: Restore Play upload keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${KEYSTORE_B64}" | base64 -d > apps/mobile/android/upload-keystore
+
+      - name: Write release-keystore.properties
+        env:
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' \
+            'storeFile=upload-keystore' \
+            "storePassword=${STORE_PASSWORD}" \
+            "keyAlias=${KEY_ALIAS}" \
+            "keyPassword=${KEY_PASSWORD}" \
+            > apps/mobile/android/release-keystore.properties
+
+      - name: Verify Android signing and Firebase config inputs
+        run: |
+          set -euo pipefail
+          test -s apps/mobile/android/upload-keystore
+          test -s apps/mobile/android/release-keystore.properties
+          test -s apps/mobile/android/app/google-services.json
+
+      - name: Write Play service account JSON
+        id: play_json
+        env:
+          PLAY_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${PLAY_JSON}" > "${RUNNER_TEMP}/play-service-account.json"
+          echo "json_path=${RUNNER_TEMP}/play-service-account.json" >> "${GITHUB_OUTPUT}"
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: RnHealthPlatform/apps/mobile
+
+      - name: Run fastlane (Android)
+        working-directory: RnHealthPlatform/apps/mobile
+        env:
+          GOOGLE_PLAY_JSON_KEY_PATH: ${{ steps.play_json.outputs.json_path }}
+        run: |
+          set -euo pipefail
+          mkdir -p fastlane/logs
+          bundle exec fastlane android internal 2>&1 | tee fastlane/logs/android-fastlane.log
+
+      - name: Upload AAB artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app-release-aab
+          path: RnHealthPlatform/apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Gradle diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-gradle-failure
+          path: |
+            RnHealthPlatform/apps/mobile/fastlane/logs
+            RnHealthPlatform/apps/mobile/android/build/reports
+            RnHealthPlatform/apps/mobile/android/build/tmp
+            RnHealthPlatform/apps/mobile/android/app/build/outputs
+            RnHealthPlatform/apps/mobile/android/app/build/reports
+            RnHealthPlatform/apps/mobile/android/app/build/tmp
+          if-no-files-found: ignore
+          retention-days: 7

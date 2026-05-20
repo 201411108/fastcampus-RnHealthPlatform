@@ -1,6 +1,13 @@
 # frozen_string_literal: true
 
+require "base64"
+require "fileutils"
+require "shellwords"
+
 default_platform(:ios)
+
+APPLE_TEAM_ID = "FCFXQT546K"
+IOS_BUNDLE_ID = "com.hankim.healthai"
 
 def mobile_root
   @mobile_root ||= File.expand_path("..", __dir__)
@@ -16,6 +23,32 @@ def assert_version_env!
   end
 end
 
+def apple_team_id
+  ENV["APPLE_TEAM_ID"].to_s.strip.empty? ? APPLE_TEAM_ID : ENV["APPLE_TEAM_ID"].to_s.strip
+end
+
+def assert_app_store_connect_env!
+  required_keys = %w[
+    APP_STORE_CONNECT_KEY_ID
+    APP_STORE_CONNECT_ISSUER_ID
+    APP_STORE_CONNECT_KEY_FILEPATH
+  ]
+  missing_keys = required_keys.select { |key| ENV[key].to_s.strip.empty? }
+  UI.user_error!("Missing App Store Connect env vars: #{missing_keys.join(', ')}") unless missing_keys.empty?
+
+  key_path = ENV["APP_STORE_CONNECT_KEY_FILEPATH"]
+  UI.user_error!("APP_STORE_CONNECT_KEY_FILEPATH does not exist: #{key_path}") unless File.exist?(key_path)
+end
+
+def xcode_auth_xcargs
+  [
+    "-allowProvisioningUpdates",
+    "-authenticationKeyPath #{Shellwords.escape(ENV['APP_STORE_CONNECT_KEY_FILEPATH'])}",
+    "-authenticationKeyID #{Shellwords.escape(ENV['APP_STORE_CONNECT_KEY_ID'])}",
+    "-authenticationKeyIssuerID #{Shellwords.escape(ENV['APP_STORE_CONNECT_ISSUER_ID'])}"
+  ].join(" ")
+end
+
 def testflight_changelog_text
   path = ENV["TESTFLIGHT_CHANGELOG_PATH"]
   if path && !path.to_s.strip.empty? && File.exist?(path)
@@ -23,6 +56,162 @@ def testflight_changelog_text
   else
     "Build #{ENV['BUILD_NUMBER']} — #{ENV['APP_VERSION']}"
   end
+end
+
+def ci_keychain_path
+  raw_path = Actions.lane_context[SharedValues::KEYCHAIN_PATH] ||
+             File.expand_path("~/Library/Keychains/#{ENV.fetch('MATCH_KEYCHAIN_NAME', 'fastlane_tmp_keychain')}")
+  FastlaneCore::Helper.keychain_path(raw_path)
+end
+
+def ci_certs_output_path
+  File.join(mobile_root, "fastlane/certs")
+end
+
+def ci_cached_distribution_p12_paths
+  Dir.glob(File.join(ci_certs_output_path, "*.p12"))
+end
+
+def ci_has_cached_distribution_p12?
+  ci_cached_distribution_p12_paths.any?
+end
+
+def profile_name_from_mobileprovision(path)
+  plist_xml = sh("security", "cms", "-D", "-i", path, log: false)
+  match = plist_xml.match(/<key>Name<\/key>\s*<string>(.*?)<\/string>/m)
+  UI.user_error!("Could not read provisioning profile name from #{path}.") if match.nil?
+
+  match[1]
+end
+
+def revoke_distribution_certs_without_private_key!(api_key:)
+  return unless is_ci
+  return if ci_has_cached_distribution_p12?
+
+  FileUtils.mkdir_p(ci_certs_output_path)
+  cached_ids = ci_cached_distribution_p12_paths.map { |path| File.basename(path, ".p12") }
+
+  token = Spaceship::ConnectAPI::Token.from(hash: api_key)
+  Spaceship::ConnectAPI.token = token
+
+  cert_types = [
+    Spaceship::ConnectAPI::Certificate::CertificateType::DISTRIBUTION,
+    Spaceship::ConnectAPI::Certificate::CertificateType::IOS_DISTRIBUTION
+  ]
+
+  certificates = Spaceship::ConnectAPI::Certificate.all(
+    filter: { certificateType: cert_types.join(",") }
+  )
+
+  revoked_count = 0
+  certificates.each do |certificate|
+    next if cached_ids.include?(certificate.id)
+
+    p12_path = File.join(ci_certs_output_path, "#{certificate.id}.p12")
+    next if File.exist?(p12_path)
+
+    UI.important(
+      "CI: revoking distribution certificate #{certificate.id} (#{certificate.display_name}) " \
+      "because no matching private key is cached on this runner."
+    )
+    certificate.delete!
+    revoked_count += 1
+  end
+
+  UI.success("CI: revoked #{revoked_count} orphaned distribution certificate(s).") if revoked_count.positive?
+end
+
+def import_ci_signing_from_secrets!(keychain:)
+  certificate_base64 = ENV["IOS_DISTRIBUTION_CERTIFICATE_BASE64"].to_s.strip
+  profile_base64 = ENV["IOS_PROVISIONING_PROFILE_BASE64"].to_s.strip
+  certificate_password = ENV["IOS_DISTRIBUTION_CERTIFICATE_PASSWORD"].to_s
+
+  return nil if certificate_base64.empty? || profile_base64.empty?
+
+  tmp_dir = File.join(mobile_root, "fastlane/tmp")
+  FileUtils.mkdir_p(tmp_dir)
+
+  p12_path = File.join(tmp_dir, "distribution.p12")
+  profile_path = File.join(tmp_dir, "distribution.mobileprovision")
+  File.binwrite(p12_path, Base64.decode64(certificate_base64))
+  File.binwrite(profile_path, Base64.decode64(profile_base64))
+
+  FastlaneCore::KeychainImporter.import_file(
+    p12_path,
+    keychain[:keychain_path],
+    keychain_password: keychain[:keychain_password],
+    certificate_password: certificate_password,
+    skip_set_partition_list: true
+  )
+
+  install_provisioning_profile(path: profile_path)
+  profile_name = ENV["IOS_PROVISIONING_PROFILE_NAME"].to_s.strip
+  profile_name = profile_name_from_mobileprovision(profile_path) if profile_name.empty?
+
+  UI.success("CI: imported distribution certificate and provisioning profile from GitHub Secrets.")
+  profile_name
+end
+
+def prepare_ci_keychain_for_signing!
+  keychain_path = ci_keychain_path
+  keychain_password = ENV.fetch("MATCH_KEYCHAIN_PASSWORD", "")
+
+  UI.message("CI: preparing keychain at #{keychain_path}")
+  FastlaneCore::CertChecker.install_missing_wwdr_certificates(in_keychain: keychain_path)
+
+  {
+    keychain_path: keychain_path,
+    keychain_password: keychain_password
+  }
+end
+
+def sync_app_store_signing_for_ci!(api_key:)
+  UI.message("CI: installing App Store distribution certificate and provisioning profile into the temporary keychain.")
+
+  keychain = prepare_ci_keychain_for_signing!
+  FileUtils.mkdir_p(ci_certs_output_path)
+
+  profile_name = import_ci_signing_from_secrets!(keychain: keychain)
+
+  unless profile_name
+    revoke_distribution_certs_without_private_key!(api_key: api_key)
+
+    cert(
+      api_key: api_key,
+      development: false,
+      force: false,
+      generate_apple_certs: true,
+      keychain_path: keychain[:keychain_path],
+      keychain_password: keychain[:keychain_password],
+      skip_set_partition_list: true,
+      output_path: ci_certs_output_path
+    )
+
+    sigh(
+      api_key: api_key,
+      app_identifier: IOS_BUNDLE_ID,
+      force: false,
+      readonly: false,
+      fail_on_name_taken: false
+    )
+
+    profile_name = Actions.lane_context[SharedValues::SIGH_NAME]
+  end
+
+  UI.user_error!("Failed to resolve an App Store provisioning profile for #{IOS_BUNDLE_ID}.") if profile_name.to_s.strip.empty?
+
+  update_code_signing_settings(
+    path: File.join(mobile_root, "ios/HealthAI.xcodeproj"),
+    use_automatic_signing: false,
+    team_id: apple_team_id,
+    targets: ["HealthAI"],
+    build_configurations: ["Release"],
+    code_sign_identity: "Apple Distribution",
+    profile_name: profile_name,
+    bundle_identifier: IOS_BUNDLE_ID
+  )
+
+  profile_name
 end
 
 desc "Yarn workspace lint + typecheck (no store upload)."
@@ -37,13 +226,11 @@ end
 platform :ios do
   desc "Archive HealthAI and upload to TestFlight (no App Store customer release)."
   lane :upload_testflight do
-    setup_ci(provider: "github") if is_ci
+    # setup_ci only validates provider "travis" | "circleci" in fastlane < 4; omit provider on GitHub Actions.
+    setup_ci if is_ci
 
     assert_version_env!
-
-    if ENV["APP_STORE_CONNECT_KEY_ID"].to_s.strip.empty?
-      UI.user_error!("APP_STORE_CONNECT_KEY_ID (and related API key env vars) must be set for CI uploads.")
-    end
+    assert_app_store_connect_env!
 
     api_key = app_store_connect_api_key(
       key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
@@ -66,12 +253,36 @@ platform :ios do
       podfile: File.join(mobile_root, "ios/Podfile")
     )
 
+    export_options = {
+      method: "app-store",
+      teamID: apple_team_id
+    }
+    build_xcargs = nil
+
+    if is_ci
+      profile_name = sync_app_store_signing_for_ci!(api_key: api_key)
+      export_options[:signingStyle] = "manual"
+      export_options[:provisioningProfiles] = {
+        IOS_BUNDLE_ID => profile_name
+      }
+    else
+      export_options[:signingStyle] = "automatic"
+      build_xcargs = xcode_auth_xcargs if ENV["APP_STORE_CONNECT_KEY_FILEPATH"]
+    end
+
     build_app(
       workspace: File.join(mobile_root, "ios/HealthAI.xcworkspace"),
       scheme: "HealthAI",
       configuration: "Release",
       export_method: "app-store",
-      api_key: api_key
+      buildlog_path: File.join(mobile_root, "fastlane/logs/gym"),
+      output_directory: File.join(mobile_root, "fastlane/build"),
+      result_bundle: true,
+      result_bundle_path: File.join(mobile_root, "fastlane/build/HealthAI.xcresult"),
+      export_team_id: apple_team_id,
+      export_options: export_options,
+      xcargs: build_xcargs,
+      skip_profile_detection: true
     )
 
     upload_to_testflight(
@@ -99,6 +310,7 @@ platform :android do
         "VERSION_NAME" => ENV["APP_VERSION"],
         "VERSION_CODE" => ENV["BUILD_NUMBER"]
       },
+      flags: "--no-daemon --stacktrace --info --warning-mode all",
       print_command: true
     )
 

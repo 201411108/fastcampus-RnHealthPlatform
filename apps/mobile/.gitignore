@@ -7,3 +7,6 @@ web-build/
 .expo
 dist/
 web-build/
+
+# fastlane CI cache (distribution private keys must not be committed)
+fastlane/certs/

@@ -13,3 +13,4 @@ alwaysApply: true
 - 디자인은 심플하고 깔끔한 느낌이 나도록 작업해줘.
 - 특정 함수를 실행할 때 void를 앞에 붙이지 않도록 해줘.
 - 비즈니스 로직을 작성할 때는 react 관련 훅이 필요하다면 커스텀 훅으로, 그렇지 않다면 유틸 함수로 작성해줘. 서비스와 같이 프론트엔드에서 사용하지 않을 법한 패턴을 사용하지 말아줘.
+- GitHub Actions 워크플로(`mobile-release.yml` 등)를 수정할 때는 **저장소 루트** `.github/workflows/`와 **`RnHealthPlatform/.github/workflows/`** 두 곳 모두 동일하게 반영해줘. 실제 CI는 저장소 루트 `.github`에서 실행된다.

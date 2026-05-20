@@ -46,6 +46,7 @@ coverage/
 **/vendor/bundle/
 
 # fastlane (로컬 실행 산출물; 시크릿은 저장소에 커밋하지 않음)
+apps/mobile/fastlane/.env.local.sh
 apps/mobile/fastlane/report.xml
 apps/mobile/fastlane/Preview.html
 apps/mobile/fastlane/tmp/

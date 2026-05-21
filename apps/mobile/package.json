@@ -7,7 +7,10 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ota:sync-native": "node scripts/syncOtaNativeConfig.cjs",
+    "ota:configure": "eas update:configure",
+    "ota:doctor": "expo-doctor"
   },
   "dependencies": {
     "@notifee/react-native": "^9.1.8",
@@ -26,6 +29,7 @@
     "expo": "~54.0.0",
     "expo-haptics": "~15.0.8",
     "expo-sensors": "~15.0.8",
+    "expo-updates": "~29.0.17",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-fs": "^2.20.0",
@@ -53,6 +57,7 @@
     "@react-native/typescript-config": "0.81.5",
     "@types/react": "^19.1.0",
     "babel-preset-expo": "~54.0.10",
+    "eas-cli": "^16.0.0",
     "eslint": "^8.19.0",
     "prettier": "2.8.8",
     "typescript": "^5.8.3"

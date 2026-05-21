@@ -49,6 +49,20 @@ def xcode_auth_xcargs
   ].join(" ")
 end
 
+def sync_ota_native_config!
+  channel = ENV.fetch("EXPO_UPDATE_CHANNEL", "staging")
+  Dir.chdir(mobile_root) do
+    sh(
+      {
+        "APP_VERSION" => ENV["APP_VERSION"],
+        "EXPO_UPDATE_CHANNEL" => channel
+      },
+      "node",
+      "scripts/syncOtaNativeConfig.cjs"
+    )
+  end
+end
+
 def testflight_changelog_text
   path = ENV["TESTFLIGHT_CHANGELOG_PATH"]
   if path && !path.to_s.strip.empty? && File.exist?(path)
@@ -250,6 +264,8 @@ platform :ios do
       xcodeproj: File.join(mobile_root, "ios/HealthAI.xcodeproj")
     )
 
+    sync_ota_native_config!
+
     cocoapods(
       podfile: File.join(mobile_root, "ios/Podfile")
     )
@@ -299,6 +315,7 @@ platform :android do
   desc "bundleRelease (signed AAB) + upload to Play internal testing track only."
   lane :internal do
     assert_version_env!
+    sync_ota_native_config!
 
     if ENV["GOOGLE_PLAY_JSON_KEY_PATH"].to_s.strip.empty?
       UI.user_error!("GOOGLE_PLAY_JSON_KEY_PATH must point to the Play service account JSON file.")

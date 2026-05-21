@@ -36,7 +36,7 @@ class AppDelegate: ExpoAppDelegate {
 
 class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
   override func sourceURL(for bridge: RCTBridge) -> URL? {
-    // needed to return the correct URL for expo-dev-client.
+    // expo-updates may set bridge.bundleURL in Release; Metro is used in Debug.
     bridge.bundleURL ?? bundleURL()
   }
 
@@ -44,6 +44,7 @@ class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
 #if DEBUG
     RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "apps/mobile/index")
 #else
+    // Embedded bundle fallback when OTA is disabled or offline.
     Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }

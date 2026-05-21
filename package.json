@@ -13,6 +13,7 @@
     "mobile:ios": "yarn workspace mobile ios",
     "mobile:lint": "yarn workspace mobile lint",
     "mobile:typecheck": "yarn workspace mobile typecheck",
+    "mobile:ota:sync-native": "yarn workspace mobile ota:sync-native",
     "lint": "eslint apps/mobile packages/core packages/feature-ai-camera packages/feature-daily-report packages/feature-pedometer"
   },
   "devDependencies": {

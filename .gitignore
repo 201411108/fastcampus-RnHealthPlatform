@@ -65,6 +65,9 @@ apps/mobile/fastlane/tmp/
 # RevenueCat (로컬 전용 — 실제 API 키·product id)
 apps/mobile/src/purchases/revenueCatConfig.ts
 
+# EAS (로컬 전용 — eas init 후 projectId)
+apps/mobile/eas.project.json
+
 # Firebase / Google (로컬 전용 — 저장소에 커밋하지 않음)
 apps/mobile/android/app/google-services.json
 apps/mobile/ios/GoogleService-Info.plist

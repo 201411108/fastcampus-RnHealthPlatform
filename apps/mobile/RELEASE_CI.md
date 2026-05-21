@@ -1,5 +1,7 @@
 # 모바일 릴리스 CI/CD (TestFlight · Play internal)
 
+**Expo OTA(EAS Update)** 설정·검증은 [OTA_SETUP.md](./OTA_SETUP.md)를 참고하세요. 이 문서의 GitHub Release 워크플로는 **네이티브 바이너리만** 다루며 OTA publish는 포함하지 않습니다.
+
 스토어 아이콘·스크린샷·해상도 체크리스트: [STORE_ASSETS.md](./STORE_ASSETS.md)
 
 GitHub **Release**가 **published**될 때 아래 워크플로가 실행된다.
@@ -39,8 +41,10 @@ yarn install
 
 | 변수 | 설명 |
 |------|------|
-| `APP_VERSION` | 마케팅 버전 (예: `1.4.0`) |
+| `APP_VERSION` | 마케팅 버전 (예: `1.4.0`) · EAS `runtimeVersion`(appVersion 정책)과 동기화 |
 | `BUILD_NUMBER` | iOS `CURRENT_PROJECT_VERSION` · Android `versionCode` (정수 문자열) |
+| `EXPO_UPDATE_CHANNEL` | (선택) OTA 채널 bake-in, 기본 `staging` — [OTA_SETUP.md](./OTA_SETUP.md) |
+| `EAS_PROJECT_ID` | (선택) `eas.project.json` 대신 사용 가능 |
 | `APP_STORE_CONNECT_KEY_ID` / `APP_STORE_CONNECT_ISSUER_ID` / `APP_STORE_CONNECT_KEY_FILEPATH` | App Store Connect API |
 | `APPLE_TEAM_ID` | (선택) Apple Developer Team ID. 생략하면 Xcode 프로젝트의 `FCFXQT546K`를 사용 |
 | `TESTFLIGHT_CHANGELOG_PATH` | (선택) TestFlight “What to Test” 텍스트 파일 |

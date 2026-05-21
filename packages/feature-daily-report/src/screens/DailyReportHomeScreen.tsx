@@ -1,4 +1,11 @@
+import {useCallback} from 'react';
 import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import type {BottomTabNavigationProp} from '@react-navigation/bottom-tabs';
+import {
+  type CompositeNavigationProp,
+  useFocusEffect,
+  useNavigation,
+} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import type {DailyReportDataSources} from '../types/dailyReport';
@@ -16,12 +23,28 @@ type DailyReportHomeScreenProps = {
     DailyReportStackParamList,
     'DailyReportHome'
   >;
+  onOpenStore?: () => void;
 };
+
+type DailyReportTabParamList = {
+  Home: undefined;
+  History: undefined;
+  DailyReport: undefined;
+  Store: undefined;
+  Settings: undefined;
+};
+
+type DailyReportHomeNavigationProp = CompositeNavigationProp<
+  NativeStackNavigationProp<DailyReportStackParamList, 'DailyReportHome'>,
+  BottomTabNavigationProp<DailyReportTabParamList>
+>;
 
 export function DailyReportHomeScreen({
   dataSources,
   navigation,
+  onOpenStore,
 }: DailyReportHomeScreenProps) {
+  const parentNavigation = useNavigation<DailyReportHomeNavigationProp>();
   const insets = useSafeAreaInsets();
   const {
     status,
@@ -29,12 +52,36 @@ export function DailyReportHomeScreen({
     sourceState,
     errorMessage,
     isFallback,
+    isGenerationLocked,
     loadReportSources,
     generateReport,
+    refreshGenerationAccess,
   } = useDailyReport({dataSources});
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshGenerationAccess().catch(() => {});
+    }, [refreshGenerationAccess]),
+  );
+
+  const handleOpenStore = useCallback(() => {
+    if (onOpenStore) {
+      onOpenStore();
+      return;
+    }
+
+    const tabNavigation = parentNavigation.getParent();
+    if (tabNavigation?.navigate) {
+      tabNavigation.navigate('Store');
+    }
+  }, [onOpenStore, parentNavigation]);
 
   const isLoading = status === 'loading' || status === 'generating';
   const isGenerating = status === 'generating';
+  const showSummaryCard =
+    (status === 'ready' || status === 'success') && sourceState;
+  const showLockedGenerationHint =
+    isGenerationLocked && (status === 'ready' || status === 'success' || status === 'empty');
 
   return (
     <ScrollView
@@ -63,14 +110,23 @@ export function DailyReportHomeScreen({
         />
       ) : null}
 
-      {status === 'locked' ? (
-        <DailyReportStateView
-          title="Daily Report를 사용할 수 없어요"
-          description="현재 계정에서 리포트 생성 권한을 확인할 수 없습니다."
-        />
+      {showLockedGenerationHint && status === 'empty' ? (
+        <View style={styles.lockedBlock}>
+          <DailyReportStateView
+            title="Daily Report 생성이 잠겨 있어요"
+            description="이미 생성된 리포트는 히스토리에서 확인할 수 있어요. 새 리포트를 만들려면 이용권이 필요합니다."
+          />
+          <Pressable
+            style={styles.storeCtaButton}
+            onPress={handleOpenStore}
+            accessibilityRole="button"
+          >
+            <Text style={styles.storeCtaLabel}>스토어에서 이용권 보기</Text>
+          </Pressable>
+        </View>
       ) : null}
 
-      {status === 'empty' ? (
+      {status === 'empty' && !showLockedGenerationHint ? (
         <DailyReportEmptyState onRetry={loadReportSources} />
       ) : null}
 
@@ -83,12 +139,14 @@ export function DailyReportHomeScreen({
         />
       ) : null}
 
-      {(status === 'ready' || status === 'success') && sourceState ? (
+      {showSummaryCard ? (
         <DailyReportDataSummaryCard
           sourceState={sourceState}
           isGenerating={isGenerating}
+          isGenerationLocked={isGenerationLocked}
           onGenerate={generateReport}
           onRefresh={loadReportSources}
+          onOpenStore={handleOpenStore}
         />
       ) : null}
 
@@ -134,6 +192,22 @@ const styles = StyleSheet.create({
   },
   description: {
     ...typography.body,
+  },
+  lockedBlock: {
+    gap: spacing.md,
+  },
+  storeCtaButton: {
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+  },
+  storeCtaLabel: {
+    color: colors.inverseText,
+    fontSize: 16,
+    fontWeight: '700',
   },
   weeklyNavButton: {
     minHeight: 48,

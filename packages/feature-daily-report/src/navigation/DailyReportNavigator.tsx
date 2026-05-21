@@ -12,11 +12,13 @@ const Stack = createNativeStackNavigator<DailyReportStackParamList>();
 export type DailyReportNavigatorProps = {
   dataSources: DailyReportDataSources;
   weeklyDataSources: WeeklyReportDataSources;
+  onOpenStore?: () => void;
 };
 
 export function DailyReportNavigator({
   dataSources,
   weeklyDataSources,
+  onOpenStore,
 }: DailyReportNavigatorProps) {
   return (
     <Stack.Navigator initialRouteName="DailyReportHome">
@@ -31,7 +33,11 @@ export function DailyReportNavigator({
         }}
       >
         {props => (
-          <DailyReportHomeScreen {...props} dataSources={dataSources} />
+          <DailyReportHomeScreen
+            {...props}
+            dataSources={dataSources}
+            onOpenStore={onOpenStore}
+          />
         )}
       </Stack.Screen>
       <Stack.Screen

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useNavigation } from '@react-navigation/native';
 import { configureAdUnits, initializeMobileAds } from '@rn-health/core';
 import {
   CameraCaptureScreen,
@@ -20,6 +22,7 @@ import {
   NavigationContainer,
   DefaultTheme,
   useFocusEffect,
+  type NavigatorScreenParams,
 } from '@react-navigation/native';
 import {
   createNativeStackNavigator,
@@ -50,18 +53,26 @@ import {
 import { productionAdUnits } from './src/adsUnitConfig';
 import { HomePedometerCard } from './src/components/HomePedometerCard';
 import { MainTabBannerAd } from './src/components/MainTabBannerAd';
-import { dailyReportDataSources } from './src/dailyReportDataSources';
+import { createDailyReportDataSources } from './src/dailyReportDataSources';
+import { useEntitlements } from './src/hooks/useEntitlements';
+import { EntitlementProvider } from './src/providers/EntitlementProvider';
+import { RevenueCatDiagnosticsScreen } from './src/screens/RevenueCatDiagnosticsScreen';
+import { PurchaseHistoryScreen } from './src/screens/PurchaseHistoryScreen';
+import { StoreScreen } from './src/screens/StoreScreen';
 import { weeklyReportDataSources } from './src/weeklyReportDataSources';
 
 type RootStackParamList = {
-  MainTabs: undefined;
+  MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   CameraCapture: undefined;
+  RevenueCatDiagnostics: undefined;
+  PurchaseHistory: undefined;
 };
 
 type MainTabParamList = {
   Home: undefined;
   History: undefined;
   DailyReport: undefined;
+  Store: undefined;
   Settings: undefined;
 };
 
@@ -84,6 +95,12 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 type SettingsScreenProps = {
+  bottomPadding: number;
+  onOpenDiagnostics?: () => void;
+  onOpenPurchaseHistory: () => void;
+};
+
+type DailyReportTabContentProps = {
   bottomPadding: number;
 };
 
@@ -300,23 +317,99 @@ function HistoryScreen({ onOpenCamera, bottomPadding }: HistoryScreenProps) {
   );
 }
 
-function SettingsScreen({ bottomPadding }: SettingsScreenProps) {
+function SettingsScreen({
+  bottomPadding,
+  onOpenDiagnostics,
+  onOpenPurchaseHistory,
+}: SettingsScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={[styles.settingsRoot, { paddingBottom: bottomPadding }]}>
         <View style={styles.headerBlock}>
           <Text style={styles.screenTitle}>설정</Text>
           <Text style={styles.screenDescription}>
-            현재는 개인정보 처리방침만 확인할 수 있어요.
+            개인정보 처리방침과 구매 내역을 확인할 수 있어요.
           </Text>
         </View>
+        <View style={styles.settingsSection}>
+          <Text style={styles.settingsSectionTitle}>구매</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="구매 내역 열기"
+            style={({ pressed }) => [
+              styles.settingsRow,
+              pressed && styles.settingsRowPressed,
+            ]}
+            onPress={onOpenPurchaseHistory}
+          >
+            <Text style={styles.settingsRowLabel}>구매 내역</Text>
+            <Text style={styles.settingsRowHint}>상세 보기</Text>
+          </Pressable>
+        </View>
+        {__DEV__ && onOpenDiagnostics ? (
+          <Pressable
+            style={styles.devDiagnosticsButton}
+            onPress={onOpenDiagnostics}
+            accessibilityRole="button"
+          >
+            <Text style={styles.devDiagnosticsLabel}>RevenueCat 진단</Text>
+          </Pressable>
+        ) : null}
         <PedometerSettingsScreen />
       </View>
     </SafeAreaView>
   );
 }
 
-function MainTabs({ stepSensor, onOpenCamera }: MainTabsProps) {
+function DailyReportTabContent({ bottomPadding }: DailyReportTabContentProps) {
+  const tabNavigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
+  const { entitlements, consumeOneTimePassAfterReportSuccess } =
+    useEntitlements();
+  const entitlementsRef = useRef(entitlements);
+  entitlementsRef.current = entitlements;
+
+  const handleOpenStore = useCallback(() => {
+    tabNavigation.navigate('Store');
+  }, [tabNavigation]);
+
+  const dataSources = useMemo(
+    () =>
+      createDailyReportDataSources({
+        checkReportAccess: () => entitlementsRef.current.canUsePaidFeature,
+        onReportGeneratedSuccess: async () => {
+          if (!entitlementsRef.current.isPremium) {
+            await consumeOneTimePassAfterReportSuccess();
+          }
+        },
+      }),
+    [consumeOneTimePassAfterReportSuccess],
+  );
+
+  return (
+    <View
+      style={[
+        styles.dailyReportTabContent,
+        { paddingBottom: bottomPadding },
+      ]}
+    >
+      <DailyReportNavigator
+        dataSources={dataSources}
+        weeklyDataSources={weeklyReportDataSources}
+        onOpenStore={handleOpenStore}
+      />
+    </View>
+  );
+}
+
+function MainTabs({
+  stepSensor,
+  onOpenCamera,
+  onOpenDiagnostics,
+  onOpenPurchaseHistory,
+}: MainTabsProps & {
+  onOpenDiagnostics?: () => void;
+  onOpenPurchaseHistory: () => void;
+}) {
   const insets = useSafeAreaInsets();
   const tabBarBottomOffset = Platform.OS === 'android' ? insets.bottom : 0;
   const tabBarBottomPadding =
@@ -361,21 +454,20 @@ function MainTabs({ stepSensor, onOpenCamera }: MainTabsProps) {
         </Tab.Screen>
         <Tab.Screen name="DailyReport" options={{ title: '데일리 리포트' }}>
           {() => (
-            <View
-              style={[
-                styles.dailyReportTabContent,
-                { paddingBottom: contentBottomPadding },
-              ]}
-            >
-              <DailyReportNavigator
-                dataSources={dailyReportDataSources}
-                weeklyDataSources={weeklyReportDataSources}
-              />
-            </View>
+            <DailyReportTabContent bottomPadding={contentBottomPadding} />
           )}
         </Tab.Screen>
+        <Tab.Screen name="Store" options={{ title: '스토어' }}>
+          {() => <StoreScreen bottomPadding={contentBottomPadding} />}
+        </Tab.Screen>
         <Tab.Screen name="Settings" options={{ title: '설정' }}>
-          {() => <SettingsScreen bottomPadding={contentBottomPadding} />}
+          {() => (
+            <SettingsScreen
+              bottomPadding={contentBottomPadding}
+              onOpenDiagnostics={onOpenDiagnostics}
+              onOpenPurchaseHistory={onOpenPurchaseHistory}
+            />
+          )}
         </Tab.Screen>
       </Tab.Navigator>
     </StepTrackingProvider>
@@ -394,6 +486,12 @@ function MainTabsScreen({ navigation }: MainTabsScreenProps) {
     <MainTabs
       stepSensor={expoStepSensor}
       onOpenCamera={() => navigation.navigate('CameraCapture')}
+      onOpenDiagnostics={
+        __DEV__
+          ? () => navigation.navigate('RevenueCatDiagnostics')
+          : undefined
+      }
+      onOpenPurchaseHistory={() => navigation.navigate('PurchaseHistory')}
     />
   );
 }
@@ -423,19 +521,41 @@ export default function App() {
         <KeyboardProvider>
           <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
           <NavigationContainer theme={DefaultTheme}>
-            <Stack.Navigator>
-              <Stack.Screen
-                name="MainTabs"
-                component={MainTabsScreen}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="CameraCapture"
-                options={{ headerShown: false, animation: 'slide_from_bottom' }}
-              >
-                {props => <CameraCaptureScreen navigation={props.navigation} />}
-              </Stack.Screen>
-            </Stack.Navigator>
+            <EntitlementProvider>
+              <Stack.Navigator>
+                <Stack.Screen
+                  name="MainTabs"
+                  component={MainTabsScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="CameraCapture"
+                  options={{ headerShown: false, animation: 'slide_from_bottom' }}
+                >
+                  {props => (
+                    <CameraCaptureScreen navigation={props.navigation} />
+                  )}
+                </Stack.Screen>
+                {__DEV__ ? (
+                  <Stack.Screen
+                    name="RevenueCatDiagnostics"
+                    component={RevenueCatDiagnosticsScreen}
+                    options={{
+                      title: 'RevenueCat 진단',
+                      animation: 'slide_from_right',
+                    }}
+                  />
+                ) : null}
+                <Stack.Screen
+                  name="PurchaseHistory"
+                  component={PurchaseHistoryScreen}
+                  options={{
+                    title: '구매 내역',
+                    animation: 'slide_from_right',
+                  }}
+                />
+              </Stack.Navigator>
+            </EntitlementProvider>
           </NavigationContainer>
         </KeyboardProvider>
       </SafeAreaProvider>
@@ -578,6 +698,53 @@ const styles = StyleSheet.create({
   settingsRoot: {
     flex: 1,
     backgroundColor: appColors.background,
+    gap: spacing.lg,
+  },
+  devDiagnosticsButton: {
+    marginHorizontal: spacing.xl,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: appColors.border,
+    backgroundColor: appColors.surface,
+  },
+  devDiagnosticsLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: appColors.textMuted,
+  },
+  settingsSection: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.sm,
+  },
+  settingsSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: appColors.textSubtle,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: appColors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: appColors.border,
+  },
+  settingsRowPressed: {
+    opacity: 0.85,
+  },
+  settingsRowLabel: {
+    fontSize: 16,
+    color: appColors.text,
+  },
+  settingsRowHint: {
+    fontSize: 14,
+    color: appColors.textSubtle,
   },
   dailyReportTabContent: {
     flex: 1,

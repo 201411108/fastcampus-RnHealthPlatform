@@ -58,6 +58,11 @@ export async function getDailyReportHistory() {
   }
 }
 
+export async function getDailyReportHistoryItemForDate(date: string) {
+  const history = await getDailyReportHistory();
+  return history.find(item => item.report.date === date) ?? null;
+}
+
 export async function appendDailyReportHistory(item: DailyReportHistoryItem) {
   const previousHistory = await getDailyReportHistory();
   const nextHistory = sanitizeHistory([item, ...previousHistory]);

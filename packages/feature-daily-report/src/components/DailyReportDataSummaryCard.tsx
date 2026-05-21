@@ -6,8 +6,10 @@ import {buttonStyle, cardStyle, colors, spacing, typography} from '../theme/toke
 type DailyReportDataSummaryCardProps = {
   sourceState: DailyReportSourceState;
   isGenerating: boolean;
+  isGenerationLocked?: boolean;
   onGenerate: () => void;
   onRefresh: () => void;
+  onOpenStore?: () => void;
 };
 
 function formatNumber(value: number) {
@@ -19,9 +21,13 @@ const SUMMARY_CARD_ENTERING = FadeIn.duration(240);
 export function DailyReportDataSummaryCard({
   sourceState,
   isGenerating,
+  isGenerationLocked = false,
   onGenerate,
   onRefresh,
+  onOpenStore,
 }: DailyReportDataSummaryCardProps) {
+  const isGenerateDisabled =
+    isGenerating || !sourceState.hasMetStepGoal || isGenerationLocked;
   return (
     <Animated.View style={styles.card} entering={SUMMARY_CARD_ENTERING}>
       <View style={styles.header}>
@@ -62,15 +68,30 @@ export function DailyReportDataSummaryCard({
         </View>
       ) : null}
 
+      {isGenerationLocked ? (
+        <View style={styles.lockedBadge}>
+          <Text style={styles.lockedText}>
+            프리미엄 구독 또는 1회 이용권이 있으면 AI 리포트를 생성할 수 있어요.
+          </Text>
+          {onOpenStore ? (
+            <Pressable
+              style={styles.storeLinkButton}
+              onPress={onOpenStore}
+              accessibilityRole="button"
+            >
+              <Text style={styles.storeLinkLabel}>스토어에서 이용권 보기</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
       <Pressable
         style={[
           styles.generateButton,
-          isGenerating || !sourceState.hasMetStepGoal
-            ? styles.disabledButton
-            : null,
+          isGenerateDisabled ? styles.disabledButton : null,
         ]}
         onPress={onGenerate}
-        disabled={isGenerating || !sourceState.hasMetStepGoal}
+        disabled={isGenerateDisabled}
         accessibilityRole="button"
       >
         <Text style={styles.generateButtonLabel}>
@@ -145,6 +166,33 @@ const styles = StyleSheet.create({
   noticeText: {
     ...typography.caption,
     color: colors.primary,
+  },
+  lockedBadge: {
+    borderRadius: 12,
+    backgroundColor: colors.surfaceMuted,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: spacing.sm,
+  },
+  lockedText: {
+    ...typography.caption,
+    color: colors.primaryText,
+    lineHeight: 20,
+  },
+  storeLinkButton: {
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+  },
+  storeLinkLabel: {
+    color: colors.inverseText,
+    fontSize: 14,
+    fontWeight: '700',
   },
   generateButton: {
     ...buttonStyle,

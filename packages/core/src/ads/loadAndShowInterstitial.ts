@@ -1,4 +1,5 @@
 import {AdEventType, InterstitialAd} from 'react-native-google-mobile-ads';
+import {getShouldHideAds} from './adVisibilityPolicy';
 import type {AdUnitSlot} from './adUnitSlots';
 import {getAdUnitId} from './getAdUnitId';
 
@@ -9,6 +10,10 @@ import {getAdUnitId} from './getAdUnitId';
 export function loadAndShowInterstitialForSlot(
   slot: AdUnitSlot,
 ): Promise<void> {
+  if (getShouldHideAds()) {
+    return Promise.resolve();
+  }
+
   const unitId = getAdUnitId(slot);
   return new Promise(resolve => {
     let settled = false;

@@ -7,7 +7,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
-import { getAdUnitId, type AdUnitSlot } from '@rn-health/core';
+import { getAdUnitId, getShouldHideAds, type AdUnitSlot } from '@rn-health/core';
+import { useEntitlements } from '../hooks/useEntitlements';
 
 export type MainTabBannerSlot = Extract<
   AdUnitSlot,
@@ -23,6 +24,7 @@ export function MainTabBannerAd({
   slot,
   containerStyle,
 }: MainTabBannerAdProps) {
+  const { entitlements } = useEntitlements();
   const unitId = useMemo(() => getAdUnitId(slot), [slot]);
   const [containerWidth, setContainerWidth] = useState(0);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -34,7 +36,7 @@ export function MainTabBannerAd({
     }
   };
 
-  if (loadFailed) {
+  if (entitlements.shouldHideAds || getShouldHideAds() || loadFailed) {
     return null;
   }
 

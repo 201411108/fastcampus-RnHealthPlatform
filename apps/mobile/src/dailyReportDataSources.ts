@@ -154,8 +154,20 @@ async function canGenerateReport(date: string): Promise<boolean> {
   );
 }
 
-export const dailyReportDataSources: DailyReportDataSources = {
-  loadFoodRecords,
-  loadStepSummary,
-  canGenerateReport,
+type CreateDailyReportDataSourcesOptions = {
+  checkReportAccess: () => boolean | Promise<boolean>;
+  onReportGeneratedSuccess: () => void | Promise<void>;
 };
+
+export function createDailyReportDataSources({
+  checkReportAccess,
+  onReportGeneratedSuccess,
+}: CreateDailyReportDataSourcesOptions): DailyReportDataSources {
+  return {
+    loadFoodRecords,
+    loadStepSummary,
+    canGenerateReport,
+    checkReportAccess,
+    onReportGeneratedSuccess,
+  };
+}

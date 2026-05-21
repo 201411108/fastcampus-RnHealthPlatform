@@ -37,7 +37,21 @@ export {
 
 export type { AdUnitSlot, AdUnitsProductionIds } from './ads/adUnitSlots';
 export { configureAdUnits } from './ads/configureAdUnits';
+export {
+  getShouldHideAds,
+  setShouldHideAdsGetter,
+} from './ads/adVisibilityPolicy';
 export { getAdUnitId } from './ads/getAdUnitId';
 export { initializeMobileAds } from './ads/initializeMobileAds';
 export { loadAndShowInterstitialForSlot } from './ads/loadAndShowInterstitial';
 export { useInterstitialAd } from './ads/useInterstitialAd';
+export type {
+  AppEntitlements,
+  AppStoreProduct,
+  PurchaseHistoryItem,
+  PurchaseHistoryStatus,
+  PurchaseHistorySummary,
+  PurchaseOutcome,
+  StoreProductKey,
+} from './types/entitlements';
+export { EMPTY_ENTITLEMENTS } from './types/entitlements';

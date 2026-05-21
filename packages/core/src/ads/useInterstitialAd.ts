@@ -4,6 +4,7 @@ import {
   AdEventType,
   InterstitialAd,
 } from 'react-native-google-mobile-ads';
+import {getShouldHideAds} from './adVisibilityPolicy';
 import type {AdUnitSlot} from './adUnitSlots';
 import {getAdUnitId} from './getAdUnitId';
 
@@ -20,6 +21,10 @@ export function useInterstitialAd(slot: AdUnitSlot) {
   );
 
   useEffect(() => {
+    if (getShouldHideAds()) {
+      return;
+    }
+
     const unsubscribeLoaded = interstitial.addAdEventListener(
       AdEventType.LOADED,
       () => {

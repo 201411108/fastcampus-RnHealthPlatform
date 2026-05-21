@@ -27,6 +27,7 @@ import {
   StepProgressRing,
   useStepTrackingContext,
 } from '@rn-health/feature-pedometer';
+import { useEntitlements } from '../hooks/useEntitlements';
 
 const appColors = {
   background: '#f8fafc',
@@ -51,6 +52,8 @@ const spacing = {
 };
 
 export function HomePedometerCard() {
+  const { entitlements } = useEntitlements();
+  const shouldHideAds = entitlements.shouldHideAds;
   const [goalInput, setGoalInput] = useState('');
   const [goalSavedFlash, setGoalSavedFlash] = useState(false);
   const [lastSavedGoal, setLastSavedGoal] = useState<number | null>(null);
@@ -277,8 +280,9 @@ export function HomePedometerCard() {
         <View style={styles.goalInsightCta}>
           <Text style={styles.goalInsightCtaTitle}>목표를 달성했어요</Text>
           <Text style={styles.goalInsightCtaBody}>
-            아래 버튼을 누르면 전면 광고가 먼저 표시되고, 광고 후에 AI 걸음 인사이트가
-            생성됩니다.
+            {shouldHideAds
+              ? '아래 버튼을 누르면 AI 걸음 인사이트가 생성됩니다.'
+              : '아래 버튼을 누르면 전면 광고가 먼저 표시되고, 광고 후에 AI 걸음 인사이트가 생성됩니다.'}
           </Text>
           <Pressable
             onPress={requestGoalInsightFromUser}
@@ -289,10 +293,14 @@ export function HomePedometerCard() {
               pressed && !isGeneratingStepInsight && styles.goalInsightCtaButtonPressed,
             ]}
             accessibilityRole="button"
-            accessibilityLabel="전면 광고 확인 후 AI 걸음 인사이트 생성"
+            accessibilityLabel={
+              shouldHideAds
+                ? 'AI 걸음 인사이트 생성'
+                : '전면 광고 확인 후 AI 걸음 인사이트 생성'
+            }
           >
             <Text style={styles.goalInsightCtaButtonLabel}>
-              전면 광고 확인 후 인사이트 받기
+              {shouldHideAds ? 'AI 인사이트 받기' : '전면 광고 확인 후 인사이트 받기'}
             </Text>
           </Pressable>
         </View>
@@ -300,9 +308,11 @@ export function HomePedometerCard() {
 
       {canRegenerateStepInsightWithAd ? (
         <View style={styles.regenerateBlock}>
-          <Text style={styles.regenerateHint}>
-            재생성 시에도 전면 광고가 표시된 뒤 인사이트가 다시 만들어집니다.
-          </Text>
+          {shouldHideAds ? null : (
+            <Text style={styles.regenerateHint}>
+              재생성 시에도 전면 광고가 표시된 뒤 인사이트가 다시 만들어집니다.
+            </Text>
+          )}
           <Pressable
             onPress={requestGoalInsightFromUser}
             disabled={isGeneratingStepInsight}
@@ -312,9 +322,15 @@ export function HomePedometerCard() {
               pressed && !isGeneratingStepInsight && styles.regenerateButtonPressed,
             ]}
             accessibilityRole="button"
-            accessibilityLabel="전면 광고 후 AI 걸음 인사이트 재생성"
+            accessibilityLabel={
+              shouldHideAds
+                ? 'AI 걸음 인사이트 재생성'
+                : '전면 광고 후 AI 걸음 인사이트 재생성'
+            }
           >
-            <Text style={styles.regenerateButtonLabel}>광고 후 인사이트 재생성</Text>
+            <Text style={styles.regenerateButtonLabel}>
+              {shouldHideAds ? '인사이트 재생성' : '광고 후 인사이트 재생성'}
+            </Text>
           </Pressable>
         </View>
       ) : null}

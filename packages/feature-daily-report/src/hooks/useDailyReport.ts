@@ -6,7 +6,10 @@ import {
 } from '@rn-health/core';
 import {buildDailyReportInput} from '../services/dailyReportInput';
 import {generateDailyReportWithAi} from '../services/dailyReportAi';
-import {appendDailyReportHistory} from '../services/dailyReportHistoryStorage';
+import {
+  appendDailyReportHistory,
+  getDailyReportHistoryItemForDate,
+} from '../services/dailyReportHistoryStorage';
 import type {
   DailyReportDataSources,
   DailyReportGenerationStatus,
@@ -33,13 +36,18 @@ export function useDailyReport({
   );
   const [errorMessage, setErrorMessage] = useState('');
   const [isFallback, setIsFallback] = useState(false);
+  const [isGenerationLocked, setIsGenerationLocked] = useState(false);
 
   const loadReportSources = useCallback(async () => {
     try {
       setStatus('loading');
       setErrorMessage('');
       setIsFallback(false);
-      setReport(null);
+
+      const hasAccess = dataSources.checkReportAccess
+        ? await dataSources.checkReportAccess()
+        : true;
+      setIsGenerationLocked(!hasAccess);
 
       const {input, sourceState: nextSourceState} = await buildDailyReportInput({
         date,
@@ -47,6 +55,16 @@ export function useDailyReport({
       });
       setReportInput(input);
       setSourceState(nextSourceState);
+
+      const existingHistoryItem = await getDailyReportHistoryItemForDate(date);
+      if (existingHistoryItem) {
+        setReport(existingHistoryItem.report);
+        setIsFallback(false);
+        setStatus('success');
+        return;
+      }
+
+      setReport(null);
 
       if (!nextSourceState.hasFoodRecords && !nextSourceState.hasStepRecords) {
         setStatus('empty');
@@ -64,6 +82,14 @@ export function useDailyReport({
     try {
       setErrorMessage('');
       setIsFallback(false);
+
+      const hasAccess = dataSources.checkReportAccess
+        ? await dataSources.checkReportAccess()
+        : true;
+      setIsGenerationLocked(!hasAccess);
+      if (!hasAccess) {
+        return;
+      }
 
       const canGenerate = dataSources.canGenerateReport
         ? await dataSources.canGenerateReport(date)
@@ -94,7 +120,6 @@ export function useDailyReport({
         }
       }
 
-      setStatus('generating');
       const result = await generateDailyReportWithAi(input);
       setReport(result.report);
       setIsFallback(result.isFallback);
@@ -106,12 +131,22 @@ export function useDailyReport({
           createdAt: new Date().toISOString(),
           report: result.report,
         });
+        if (dataSources.onReportGeneratedSuccess) {
+          await dataSources.onReportGeneratedSuccess();
+        }
       }
     } catch {
       setErrorMessage('Daily Report를 불러오지 못했습니다. 다시 시도해 주세요.');
       setStatus('error');
     }
   }, [dataSources, date, reportInput]);
+
+  const refreshGenerationAccess = useCallback(async () => {
+    const hasAccess = dataSources.checkReportAccess
+      ? await dataSources.checkReportAccess()
+      : true;
+    setIsGenerationLocked(!hasAccess);
+  }, [dataSources]);
 
   useEffect(() => {
     loadReportSources();
@@ -125,7 +160,9 @@ export function useDailyReport({
     sourceState,
     errorMessage,
     isFallback,
+    isGenerationLocked,
     loadReportSources,
     generateReport,
+    refreshGenerationAccess,
   };
 }
